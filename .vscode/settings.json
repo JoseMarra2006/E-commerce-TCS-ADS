@@ -1,4 +1,4 @@
 {
-  "deno.enablePaths": ["./server"],
+  "deno.enablePaths": ["./servidor"],
   "deno.lint": true
 }

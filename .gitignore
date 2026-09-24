@@ -1,6 +1,6 @@
 node_modules/
 dist/
-server/data/*
+servidor/dados/*
 *.db
 *.db-shm
 *.db-wal
@@ -9,4 +9,4 @@ server/data/*
 .DS_Store
 Thumbs.db
 CLAUDE.md
-!server/data/.gitkeep
+!servidor/dados/.gitkeep

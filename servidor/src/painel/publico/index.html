@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="token-painel" content="{{TOKEN_PAINEL}}">
+    <title>Servidor E-commerce | Painel</title>
+    <link rel="stylesheet" href="/painel.css">
+    <script type="module" src="/painel.js"></script>
+  </head>
+  <body>
+    <div class="aviso-conexao" id="aviso-conexao"
+      hidden>Conexão com o servidor perdida.</div>
+
+    <header class="cabecalho">
+      <h1>Painel do Servidor</h1>
+      <span class="selo-status" id="selo-status"
+        data-status="parada">Parada</span>
+    </header>
+
+    <main class="grade-cartoes">
+      <section class="cartao" id="cartao-configuracao">
+        <h2>Configuração</h2>
+        <div class="campo">
+          <label for="campo-porta">Porta da API</label>
+          <input
+            type="text"
+            id="campo-porta"
+            inputmode="numeric"
+            placeholder="ex.: 20000"
+            autocomplete="off"
+          >
+          <p class="mensagem-validacao" id="mensagem-validacao-porta"></p>
+        </div>
+        <div class="grupo-botoes">
+          <button type="button" id="botao-iniciar">Iniciar servidor</button>
+          <button type="button" id="botao-parar">Parar servidor</button>
+        </div>
+        <p class="mensagem-acao" id="mensagem-acao" aria-live="polite"></p>
+      </section>
+
+      <section class="cartao" id="cartao-status">
+        <h2>Status</h2>
+        <div aria-live="polite">
+          <p>Status: <span id="texto-status">Parada</span></p>
+          <p>Porta atual: <span id="texto-porta">-</span></p>
+          <p class="texto-erro" id="texto-erro" hidden></p>
+        </div>
+      </section>
+
+      <section class="cartao" id="cartao-enderecos">
+        <h2>Endereços de acesso</h2>
+        <ul class="lista-enderecos" id="lista-enderecos"></ul>
+        <p class="aviso-rede">
+      Informe aos colegas o endereço da rede. Se eles não conseguirem
+      conectar, verifique se a porta está liberada no firewall.
+    </p>
+      </section>
+
+      <section class="cartao" id="cartao-threads">
+        <h2>Threads</h2>
+        <div class="grade-threads" id="grade-threads"></div>
+      </section>
+
+      <section class="cartao cartao-largo" id="cartao-mensagens">
+        <h2>Mensagens</h2>
+        <button type="button" id="botao-limpar">Limpar exibição</button>
+        <div class="lista-mensagens" id="lista-mensagens"></div>
+      </section>
+    </main>
+
+    <footer class="rodape">
+      <button type="button" id="botao-encerrar">Encerrar servidor</button>
+    </footer>
+  </body>
+</html>
