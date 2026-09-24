@@ -1,0 +1,567 @@
+openapi: 3.0.3
+info:
+  title: Protocolo de Comunicação - Autenticação e Usuários
+  description: |-
+    Modelo do protocolo REST/HTTP para autenticação (login/logout) e CRUD de usuários,
+    para uso no trabalho prático da disciplina.
+    Padroniza rotas, cabeçalhos, corpo de requisição (JSON) e respostas.
+
+    Regras gerais (autenticação, CORS, formato de erro, ordem de validação etc.)
+    e histórico de versões estão documentados no README do repositório.
+  version: 1.3.1
+servers:
+  - url: http://{ip}:{porta}/api/v1
+    description: Servidor de qualquer aluno. IP e porta ficam a critério de quem usa o cliente; /api/v1 é fixo.
+    variables:
+      ip:
+        default: localhost
+        description: Endereço IP do servidor.
+      porta:
+        default: "8080"
+        description: Porta em que o servidor está escutando.
+
+paths:
+  /sessions:
+    post:
+      summary: Criar sessão (login)
+      description: Valida as credenciais e cria uma sessão, retornando id da sessão e token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '201':
+          description: Sessão criada com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '400':
+          description: Corpo mal formatado, ou e-mail/senha ausentes ou fora das restrições de tamanho/formato. Inclui campo com tipo errado ou valor null.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: 'Credenciais inválidas. Mensagem genérica (ex.: "E-mail ou senha inválidos"), sem apontar se o problema foi o e-mail ou a senha.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    options:
+      summary: Preflight CORS
+      description: Checagem automática do navegador antes de POST /sessions. Sem token, sem corpo.
+      security: []
+      responses:
+        '204':
+          description: Preflight aceito.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+            Access-Control-Allow-Methods:
+              $ref: '#/components/headers/AccessControlAllowMethods'
+            Access-Control-Allow-Headers:
+              $ref: '#/components/headers/AccessControlAllowHeaders'
+
+  /sessions/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: Identificador único da sessão (distinto do token JWT).
+        required: true
+        schema:
+          type: string
+          example: "9f1c2e3a-4b5d-4a6f-8c7e-1a2b3c4d5e6f"
+
+    delete:
+      summary: Encerrar sessão (logout)
+      description: |-
+        Invalida a sessão identificada pelo id informado, removendo-a da
+        "whitelist" de sessões ativas (ou incluindo-a em uma "blacklist").
+        O id da URL deve pertencer ao dono do token enviado no header
+        Authorization; caso contrário, a exclusão é negada.
+        Após o logout, o token não deve dar acesso a nenhuma rota além de
+        POST /sessions e POST /users.
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Logout realizado com sucesso, sem conteúdo de retorno.
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O id da sessão não pertence ao dono do token enviado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '404':
+          description: Sessão não encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    options:
+      summary: Preflight CORS
+      description: Checagem automática do navegador antes de DELETE /sessions/{id}. Sem token, sem corpo.
+      security: []
+      responses:
+        '204':
+          description: Preflight aceito.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+            Access-Control-Allow-Methods:
+              $ref: '#/components/headers/AccessControlAllowMethods'
+            Access-Control-Allow-Headers:
+              $ref: '#/components/headers/AccessControlAllowHeaders'
+
+  /users:
+    #esta função será usada nas funcionalidades de Admin, portanto, não é necessário para a primeira entrega;
+    # get:
+    #   summary: Listar todos os usuários
+    #   description: Retorna uma lista com todos os usuários cadastrados no sistema.
+    #   security:
+    #     - bearerAuth: []
+    #   parameters:
+    #     - name: nome
+    #       in: query
+    #       description: Filtrar usuários por nome
+    #       required: false
+    #       schema:
+    #         type: string
+    #   responses:
+    #     '200':
+    #       description: Lista recuperada com sucesso.
+    #       content:
+    #         application/json:
+    #           schema:
+    #             type: array
+    #             items:
+    #               $ref: '#/components/schemas/UserResponse'
+    #     '401':
+    #       description: Token ausente ou inválido.
+
+    post:
+      summary: Criar um novo usuário
+      description: |-
+        Cadastra um novo usuário no sistema. Se o e-mail já existir no banco,
+        o servidor deve responder 409 e o cliente deve orientar o usuário a
+        fazer login em vez de se cadastrar novamente.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      responses:
+        '201':
+          description: Usuário criado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Requisição inválida ou corpo mal formatado (viola alguma restrição de dado). Inclui campo com tipo errado ou valor null.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '409':
+          description: E-mail já cadastrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    options:
+      summary: Preflight CORS
+      description: Checagem automática do navegador antes de POST /users. Sem token, sem corpo.
+      security: []
+      responses:
+        '204':
+          description: Preflight aceito.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+            Access-Control-Allow-Methods:
+              $ref: '#/components/headers/AccessControlAllowMethods'
+            Access-Control-Allow-Headers:
+              $ref: '#/components/headers/AccessControlAllowHeaders'
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: Identificador único do usuário
+        required: true
+        schema:
+          type: integer
+          example: 1
+
+    get:
+      summary: Buscar usuário por ID
+      description: |-
+        Retorna os dados do usuário identificado pelo id informado. O id da
+        URL deve pertencer ao dono do token enviado no header Authorization;
+        caso contrário, a consulta é negada.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Usuário encontrado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: O id informado na URL não é um número inteiro válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O id do usuário não pertence ao dono do token enviado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '404':
+          description: Usuário não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    put:
+      summary: Atualizar usuário
+      description: |-
+        Atualiza todos os dados do usuário identificado pelo id informado. O
+        id da URL deve pertencer ao dono do token enviado no header
+        Authorization; caso contrário, a atualização é negada.
+        Exige nome, email e senha juntos — falta de qualquer um dá 400. Pra
+        mudar só um campo, usar PATCH.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      responses:
+        '200':
+          description: Usuário atualizado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Corpo mal formatado, campo obrigatório ausente, ou id da URL inválido. Inclui campo com tipo errado ou valor null.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O id do usuário não pertence ao dono do token enviado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '404':
+          description: Usuário não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '409':
+          description: O e-mail informado já está cadastrado por outro usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    patch:
+      summary: Atualizar parcialmente usuário
+      description: |-
+        Atualiza um ou mais campos do usuário identificado pelo id informado.
+        O id da URL deve pertencer ao dono do token enviado no header
+        Authorization; caso contrário, a atualização é negada.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPatchRequest'
+      responses:
+        '200':
+          description: Usuário atualizado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Corpo mal formatado, corpo vazio (sem nenhum campo), ou id da URL inválido. Inclui campo com tipo errado ou valor null.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O id do usuário não pertence ao dono do token enviado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '404':
+          description: Usuário não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '409':
+          description: O e-mail informado já está cadastrado por outro usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    delete:
+      summary: Remover usuário
+      description: |-
+        Exclui o usuário identificado pelo id informado. O id da URL deve
+        pertencer ao dono do token enviado no header Authorization; caso
+        contrário, a exclusão é negada.
+        A exclusão derruba da whitelist todas as sessões desse usuário —
+        depois disso, qualquer requisição com esses tokens dá 401. Confirmar
+        com o usuário antes de chamar essa rota é responsabilidade do cliente.
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Usuário removido com sucesso, sem conteúdo de retorno.
+        '400':
+          description: O id informado na URL não é um número inteiro válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O id do usuário não pertence ao dono do token enviado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '404':
+          description: Usuário não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    options:
+      summary: Preflight CORS
+      description: Checagem automática do navegador antes de GET, PUT, PATCH ou DELETE /users/{id}. Sem token, sem corpo.
+      security: []
+      responses:
+        '204':
+          description: Preflight aceito.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+            Access-Control-Allow-Methods:
+              $ref: '#/components/headers/AccessControlAllowMethods'
+            Access-Control-Allow-Headers:
+              $ref: '#/components/headers/AccessControlAllowHeaders'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |-
+        Token devolvido no campo "token" de POST /sessions, enviado como
+        "Authorization: Bearer <token>". Pode ser JWT ou opaco — o cliente
+        trata como string, sem decodificar. Servidor valida contra a
+        whitelist de sessões ativas.
+
+  headers:
+    AccessControlAllowOrigin:
+      description: Origem permitida (CORS).
+      schema:
+        type: string
+        example: "*"
+    AccessControlAllowMethods:
+      description: Métodos permitidos (CORS).
+      schema:
+        type: string
+        example: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    AccessControlAllowHeaders:
+      description: Cabeçalhos permitidos (CORS).
+      schema:
+        type: string
+        example: "Content-Type, Authorization"
+
+  responses:
+    ErroInterno:
+      description: Erro interno inesperado no servidor.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErroResponse'
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - senha
+      properties:
+        email:
+          $ref: '#/components/schemas/Email'
+        senha:
+          $ref: '#/components/schemas/Senha'
+
+    SessionResponse:
+      type: object
+      required: [id, token, usuario]
+      properties:
+        id:
+          type: string
+          description: Id da sessão, usado em DELETE /sessions/{id} no logout.
+          example: "9f1c2e3a-4b5d-4a6f-8c7e-1a2b3c4d5e6f"
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        usuario:
+          $ref: '#/components/schemas/UserResponse'
+
+    UserRequest:
+      type: object
+      required:
+        - nome
+        - email
+        - senha
+      properties:
+        nome:
+          $ref: '#/components/schemas/Nome'
+        email:
+          $ref: '#/components/schemas/Email'
+        senha:
+          $ref: '#/components/schemas/Senha'
+
+    UserPatchRequest:
+      type: object
+      minProperties: 1
+      description: Pelo menos um campo (nome, email ou senha). Só o que for enviado muda.
+      properties:
+        nome:
+          $ref: '#/components/schemas/Nome'
+        email:
+          $ref: '#/components/schemas/Email'
+        senha:
+          $ref: '#/components/schemas/Senha'
+
+    UserResponse:
+      type: object
+      required: [id, nome, email]
+      properties:
+        id:
+          type: integer
+          example: 1
+        nome:
+          type: string
+          example: "João da Silva"
+        email:
+          type: string
+          format: email
+          example: "aluno_joao@exemplo.com"
+
+    Email:
+      type: string
+      format: email
+      minLength: 5
+      maxLength: 30
+      pattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+      description: |-
+        Deve conter obrigatoriamente "@" e um domínio.
+        Tamanho entre 5 e 30 caracteres.
+      example: "aluno_joao@exemplo.com"
+
+    Senha:
+      type: string
+      format: password
+      minLength: 6
+      maxLength: 20
+      pattern: '^[a-zA-Z0-9]+$'
+      description: |-
+        Alfanumérica (maiúsculas e/ou minúsculas e dígitos), sem caracteres especiais.
+        Tamanho entre 6 e 20 caracteres.
+      example: "senha123"
+
+    Nome:
+      type: string
+      minLength: 3
+      maxLength: 50
+      description: Entre 3 e 50 caracteres, já com trim (sem espaços nas pontas).
+      example: "João da Silva"
+
+    ErroResponse:
+      type: object
+      required:
+        - mensagem
+      properties:
+        mensagem:
+          type: string
+          description: Mensagem legível do erro, pra mostrar ao usuário.
+          example: "E-mail já cadastrado."
