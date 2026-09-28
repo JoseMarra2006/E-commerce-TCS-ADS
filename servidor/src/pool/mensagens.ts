@@ -1,5 +1,5 @@
 export type MensagemParaThread =
-  | { tipo: "iniciar"; numero: number }
+  | { tipo: "iniciar"; numero: number; caminhoBanco: string }
   | {
     tipo: "requisicao";
     id: number;
@@ -12,6 +12,7 @@ export type MensagemParaThread =
 
 export type MensagemDaThread =
   | { tipo: "pronta"; numero: number }
+  | { tipo: "falha_inicializacao"; numero: number; mensagem: string }
   | {
     tipo: "resposta";
     id: number;
@@ -37,7 +38,10 @@ export function ehMensagemParaThread(
   }
 
   if (objeto.tipo === "iniciar") {
-    return typeof objeto.numero === "number";
+    return (
+      typeof objeto.numero === "number" &&
+      typeof objeto.caminhoBanco === "string"
+    );
   }
 
   if (objeto.tipo === "requisicao") {
@@ -66,6 +70,13 @@ export function ehMensagemDaThread(dado: unknown): dado is MensagemDaThread {
 
   if (objeto.tipo === "pronta") {
     return typeof objeto.numero === "number";
+  }
+
+  if (objeto.tipo === "falha_inicializacao") {
+    return (
+      typeof objeto.numero === "number" &&
+      typeof objeto.mensagem === "string"
+    );
   }
 
   if (objeto.tipo === "resposta") {

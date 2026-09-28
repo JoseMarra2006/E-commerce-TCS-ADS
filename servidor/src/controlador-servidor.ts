@@ -2,12 +2,23 @@ import { GerenciadorPool } from "./pool/gerenciador-pool.ts";
 import { iniciarRecepcao, type Recepcao } from "./recepcao.ts";
 import { obterEnderecosAcesso } from "./utilitarios/rede.ts";
 import type { EstadoServidor, Registro, StatusServidor } from "./estado.ts";
+import {
+  abrirConexao,
+  fecharConexao,
+  garantirPastaDoBanco,
+  obterCaminhoBanco,
+} from "./banco/conexao.ts";
+import { executarMigracoes } from "./banco/migracoes.ts";
 
 const LIMITE_REGISTROS = 500;
 
 export interface ResultadoOperacao {
   ok: boolean;
   mensagem: string;
+}
+
+export interface OpcoesControladorServidor {
+  caminhoBanco?: string;
 }
 
 export class ControladorServidor extends EventTarget {
@@ -18,6 +29,12 @@ export class ControladorServidor extends EventTarget {
   private pool: GerenciadorPool | null = null;
   private recepcao: Recepcao | null = null;
   private readonly registros: Registro[] = [];
+  private readonly caminhoBanco: string;
+
+  constructor(opcoes: OpcoesControladorServidor = {}) {
+    super();
+    this.caminhoBanco = opcoes.caminhoBanco ?? obterCaminhoBanco();
+  }
 
   async iniciar(porta: number): Promise<ResultadoOperacao> {
     if (this.status !== "parada" && this.status !== "erro") {
@@ -30,6 +47,27 @@ export class ControladorServidor extends EventTarget {
     this.mensagemErro = null;
     this.definirStatus("iniciando");
 
+    try {
+      garantirPastaDoBanco(this.caminhoBanco);
+      const conexao = abrirConexao(this.caminhoBanco);
+      try {
+        executarMigracoes(conexao);
+      } finally {
+        fecharConexao(conexao);
+      }
+    } catch (erro: unknown) {
+      const mensagemOriginal = erro instanceof Error
+        ? erro.message
+        : String(erro);
+      const mensagem =
+        `Não foi possível preparar o banco de dados: ${mensagemOriginal}.`;
+      this.mensagemErro = mensagem;
+      this.definirStatus("erro");
+      return { ok: false, mensagem };
+    }
+
+    this.registrarSistema("info", "Banco de dados preparado.");
+
     const pool = new GerenciadorPool();
     this.pool = pool;
     pool.addEventListener("estado", () => this.emitirEstado());
@@ -41,7 +79,7 @@ export class ControladorServidor extends EventTarget {
     });
 
     try {
-      await pool.iniciar();
+      await pool.iniciar(this.caminhoBanco);
     } catch (erro: unknown) {
       this.pool = null;
       const mensagem = erro instanceof Error

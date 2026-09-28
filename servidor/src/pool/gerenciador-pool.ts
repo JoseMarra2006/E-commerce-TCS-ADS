@@ -6,6 +6,8 @@ const QUANTIDADE_MAXIMA_THREADS = 8;
 const TEMPO_LIMITE_INICIALIZACAO_MS = 10000;
 const TEMPO_LIMITE_REQUISICAO_MS = 30000;
 const TEMPO_LIMITE_ENCERRAMENTO_THREAD_MS = 2000;
+const MAXIMO_TENTATIVAS_SUBSTITUICAO = 3;
+const INTERVALO_RETENTATIVA_SUBSTITUICAO_MS = 2000;
 
 export interface EstadoThread {
   numero: number;
@@ -41,6 +43,10 @@ export interface FalhaProcessamento {
 
 export type ResultadoProcessamento = SucessoProcessamento | FalhaProcessamento;
 
+type ResultadoInicializacaoThread =
+  | { ok: true }
+  | { ok: false; mensagem: string };
+
 interface InfoThread {
   numero: number;
   worker: Worker;
@@ -58,6 +64,12 @@ interface ItemFila {
   id: number;
   requisicao: RequisicaoParaProcessar;
   resolve: (resultado: ResultadoProcessamento) => void;
+  timeoutId: ReturnType<typeof setTimeout>;
+}
+
+interface TemporizadorSubstituicao {
+  timeoutId: ReturnType<typeof setTimeout>;
+  resolver: () => void;
 }
 
 export function ehResultadoDeSucesso(
@@ -72,10 +84,19 @@ export class GerenciadorPool extends EventTarget {
   private readonly pendentes = new Map<number, Pendencia>();
   private readonly filaEspera: ItemFila[] = [];
   private readonly resolvedoresProntidao = new Map<number, () => void>();
+  private readonly resolvedoresFalhaInicializacao = new Map<
+    number,
+    (mensagem: string) => void
+  >();
   private readonly resolvedoresEncerramento = new Map<number, () => void>();
+  private readonly temporizadoresSubstituicao = new Map<
+    number,
+    TemporizadorSubstituicao
+  >();
   private proximoId = 1;
   private contadorRodizio = 0;
   private encerrando = false;
+  private caminhoBanco = "";
 
   constructor() {
     super();
@@ -86,32 +107,49 @@ export class GerenciadorPool extends EventTarget {
     );
   }
 
-  async iniciar(): Promise<void> {
-    const promessasProntidao: Promise<void>[] = [];
+  async iniciar(caminhoBanco: string): Promise<void> {
+    this.caminhoBanco = caminhoBanco;
 
+    const promessasResultado: Promise<ResultadoInicializacaoThread>[] = [];
     for (let numero = 1; numero <= this.quantidadeThreads; numero++) {
-      promessasProntidao.push(this.criarThread(numero));
+      promessasResultado.push(this.criarThread(numero));
     }
 
     let timeoutId!: ReturnType<typeof setTimeout>;
-    const promessaTempoLimite = new Promise<"tempo_esgotado">((resolve) => {
-      timeoutId = setTimeout(
-        () => resolve("tempo_esgotado"),
-        TEMPO_LIMITE_INICIALIZACAO_MS,
-      );
-    });
+    const promessaTempoLimite = new Promise<{ tipo: "tempo_esgotado" }>(
+      (resolve) => {
+        timeoutId = setTimeout(
+          () => resolve({ tipo: "tempo_esgotado" }),
+          TEMPO_LIMITE_INICIALIZACAO_MS,
+        );
+      },
+    );
 
-    const resultado = await Promise.race([
-      Promise.all(promessasProntidao).then(() => "ok" as const),
+    const resultadoCorrida = await Promise.race([
+      Promise.all(promessasResultado).then((resultados) => (
+        { tipo: "concluido" as const, resultados }
+      )),
       promessaTempoLimite,
     ]);
 
     clearTimeout(timeoutId);
 
-    if (resultado === "tempo_esgotado") {
+    if (resultadoCorrida.tipo === "tempo_esgotado") {
       await this.encerrar();
       throw new Error(
         "As threads de processamento não puderam ser iniciadas.",
+      );
+    }
+
+    const falha = resultadoCorrida.resultados.find(
+      (resultado): resultado is { ok: false; mensagem: string } =>
+        resultado.ok === false,
+    );
+
+    if (falha !== undefined) {
+      await this.encerrar();
+      throw new Error(
+        `Não foi possível abrir o banco de dados nas threads: ${falha.mensagem}.`,
       );
     }
   }
@@ -126,7 +164,11 @@ export class GerenciadorPool extends EventTarget {
       }
 
       const id = this.proximoId++;
-      const item: ItemFila = { id, requisicao, resolve };
+      const timeoutId = setTimeout(() => {
+        this.tratarTempoEsgotado(id);
+      }, TEMPO_LIMITE_REQUISICAO_MS);
+
+      const item: ItemFila = { id, requisicao, resolve, timeoutId };
       const thread = this.escolherThreadDisponivel();
 
       if (thread === null) {
@@ -140,11 +182,21 @@ export class GerenciadorPool extends EventTarget {
 
   async substituirThread(numero: number): Promise<void> {
     await this.trocarThread(numero);
-    this.emitirSistema("info", `A thread ${numero} foi substituída.`);
+    if (this.threads.has(numero)) {
+      this.emitirSistema("info", `A thread ${numero} foi substituída.`);
+    }
   }
 
   async encerrar(): Promise<void> {
     this.encerrando = true;
+
+    for (
+      const { timeoutId, resolver } of this.temporizadoresSubstituicao.values()
+    ) {
+      clearTimeout(timeoutId);
+      resolver();
+    }
+    this.temporizadoresSubstituicao.clear();
 
     for (const pendencia of this.pendentes.values()) {
       clearTimeout(pendencia.timeoutId);
@@ -156,6 +208,7 @@ export class GerenciadorPool extends EventTarget {
     this.pendentes.clear();
 
     for (const item of this.filaEspera) {
+      clearTimeout(item.timeoutId);
       item.resolve({ falha: "encerrando", numeroThread: null });
     }
     this.filaEspera.length = 0;
@@ -168,6 +221,7 @@ export class GerenciadorPool extends EventTarget {
     await Promise.all(promessas);
     this.threads.clear();
     this.resolvedoresProntidao.clear();
+    this.resolvedoresFalhaInicializacao.clear();
     this.resolvedoresEncerramento.clear();
   }
 
@@ -179,7 +233,7 @@ export class GerenciadorPool extends EventTarget {
     }));
   }
 
-  private criarThread(numero: number): Promise<void> {
+  private criarThread(numero: number): Promise<ResultadoInicializacaoThread> {
     return new Promise((resolve) => {
       const worker = new Worker(
         new URL("./trabalhador.ts", import.meta.url).href,
@@ -210,9 +264,17 @@ export class GerenciadorPool extends EventTarget {
         this.tratarFalhaThread(numero, "mensagem inválida recebida da thread");
       };
 
-      this.resolvedoresProntidao.set(numero, resolve);
+      this.resolvedoresProntidao.set(numero, () => resolve({ ok: true }));
+      this.resolvedoresFalhaInicializacao.set(
+        numero,
+        (mensagem) => resolve({ ok: false, mensagem }),
+      );
 
-      const mensagem: MensagemParaThread = { tipo: "iniciar", numero };
+      const mensagem: MensagemParaThread = {
+        tipo: "iniciar",
+        numero,
+        caminhoBanco: this.caminhoBanco,
+      };
       worker.postMessage(mensagem);
     });
   }
@@ -229,6 +291,7 @@ export class GerenciadorPool extends EventTarget {
       }
       this.emitirEstado();
 
+      this.resolvedoresFalhaInicializacao.delete(numero);
       const resolvedor = this.resolvedoresProntidao.get(numero);
       if (resolvedor) {
         resolvedor();
@@ -236,6 +299,16 @@ export class GerenciadorPool extends EventTarget {
       }
 
       this.despacharFila();
+      return;
+    }
+
+    if (dado.tipo === "falha_inicializacao") {
+      this.resolvedoresProntidao.delete(numero);
+      const resolvedor = this.resolvedoresFalhaInicializacao.get(numero);
+      if (resolvedor) {
+        resolvedor(dado.mensagem);
+        this.resolvedoresFalhaInicializacao.delete(numero);
+      }
       return;
     }
 
@@ -288,10 +361,12 @@ export class GerenciadorPool extends EventTarget {
     this.falharPendentesDaThread(numero, "thread_falhou");
 
     void this.trocarThread(numero).then(() => {
-      this.emitirSistema(
-        "erro",
-        `A thread ${numero} falhou e foi substituída: ${motivo}.`,
-      );
+      if (this.threads.has(numero)) {
+        this.emitirSistema(
+          "erro",
+          `A thread ${numero} falhou e foi substituída: ${motivo}.`,
+        );
+      }
     });
   }
 
@@ -312,14 +387,10 @@ export class GerenciadorPool extends EventTarget {
     thread.emAndamento++;
     this.emitirEstado();
 
-    const timeoutId = setTimeout(() => {
-      this.tratarTempoEsgotado(item.id);
-    }, TEMPO_LIMITE_REQUISICAO_MS);
-
     this.pendentes.set(item.id, {
       resolve: item.resolve,
       numeroThread: thread.numero,
-      timeoutId,
+      timeoutId: item.timeoutId,
     });
 
     const mensagem: MensagemParaThread = {
@@ -336,22 +407,29 @@ export class GerenciadorPool extends EventTarget {
 
   private tratarTempoEsgotado(id: number): void {
     const pendencia = this.pendentes.get(id);
-    if (!pendencia) {
+    if (pendencia) {
+      this.pendentes.delete(id);
+      const numeroThread = pendencia.numeroThread;
+      pendencia.resolve({ falha: "tempo_esgotado", numeroThread });
+
+      this.falharPendentesDaThread(numeroThread, "thread_falhou");
+
+      void this.trocarThread(numeroThread).then(() => {
+        if (this.threads.has(numeroThread)) {
+          this.emitirSistema(
+            "erro",
+            `A thread ${numeroThread} não respondeu em 30 segundos e foi substituída.`,
+          );
+        }
+      });
       return;
     }
 
-    this.pendentes.delete(id);
-    const numeroThread = pendencia.numeroThread;
-    pendencia.resolve({ falha: "tempo_esgotado", numeroThread });
-
-    this.falharPendentesDaThread(numeroThread, "thread_falhou");
-
-    void this.trocarThread(numeroThread).then(() => {
-      this.emitirSistema(
-        "erro",
-        `A thread ${numeroThread} não respondeu em 30 segundos e foi substituída.`,
-      );
-    });
+    const indiceFila = this.filaEspera.findIndex((item) => item.id === id);
+    if (indiceFila !== -1) {
+      const [item] = this.filaEspera.splice(indiceFila, 1);
+      item.resolve({ falha: "tempo_esgotado", numeroThread: null });
+    }
   }
 
   private despacharFila(): void {
@@ -397,17 +475,77 @@ export class GerenciadorPool extends EventTarget {
     if (infoAntiga) {
       infoAntiga.pronta = false;
       this.emitirEstado();
-      infoAntiga.worker.onmessage = null;
-      infoAntiga.worker.onerror = null;
-      infoAntiga.worker.onmessageerror = null;
-      infoAntiga.worker.terminate();
+      this.desligarWorker(infoAntiga.worker);
+      this.threads.delete(numero);
     }
 
     this.resolvedoresProntidao.delete(numero);
+    this.resolvedoresFalhaInicializacao.delete(numero);
 
-    if (!this.encerrando) {
-      await this.criarThread(numero);
+    if (this.encerrando) {
+      return;
     }
+
+    await this.tentarRecriarThread(numero, 1);
+  }
+
+  private async tentarRecriarThread(
+    numero: number,
+    tentativa: number,
+  ): Promise<void> {
+    const resultado = await this.criarThread(numero);
+
+    if (resultado.ok) {
+      return;
+    }
+
+    this.emitirSistema(
+      "erro",
+      `A thread ${numero} não conseguiu abrir o banco de dados: ${resultado.mensagem}.`,
+    );
+
+    const infoFalha = this.threads.get(numero);
+    if (infoFalha) {
+      this.desligarWorker(infoFalha.worker);
+      this.threads.delete(numero);
+      this.emitirEstado();
+    }
+
+    if (this.encerrando) {
+      return;
+    }
+
+    if (tentativa >= MAXIMO_TENTATIVAS_SUBSTITUICAO) {
+      this.emitirSistema(
+        "erro",
+        `A thread ${numero} foi desativada após falhas repetidas.`,
+      );
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      const timeoutId = setTimeout(() => {
+        this.temporizadoresSubstituicao.delete(numero);
+        resolve();
+      }, INTERVALO_RETENTATIVA_SUBSTITUICAO_MS);
+      this.temporizadoresSubstituicao.set(numero, {
+        timeoutId,
+        resolver: resolve,
+      });
+    });
+
+    if (this.encerrando) {
+      return;
+    }
+
+    await this.tentarRecriarThread(numero, tentativa + 1);
+  }
+
+  private desligarWorker(worker: Worker): void {
+    worker.onmessage = null;
+    worker.onerror = null;
+    worker.onmessageerror = null;
+    worker.terminate();
   }
 
   private encerrarThreadIndividual(info: InfoThread): Promise<void> {
@@ -421,10 +559,7 @@ export class GerenciadorPool extends EventTarget {
         concluido = true;
         clearTimeout(timeoutId);
         this.resolvedoresEncerramento.delete(info.numero);
-        info.worker.onmessage = null;
-        info.worker.onerror = null;
-        info.worker.onmessageerror = null;
-        info.worker.terminate();
+        this.desligarWorker(info.worker);
         resolve();
       };
 

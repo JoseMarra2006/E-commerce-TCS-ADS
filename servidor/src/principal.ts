@@ -12,6 +12,9 @@ function gerarTokenPainel(): string {
 
 const token = gerarTokenPainel();
 const controlador = new ControladorServidor();
+const controladorEncerramentoSse = new AbortController();
+
+const TEMPO_LIMITE_SHUTDOWN_PAINEL_MS = 2000;
 
 let portaPainel = 0;
 let processoEncerrado = false;
@@ -26,7 +29,16 @@ async function encerrarProcesso(): Promise<void> {
     await controlador.parar();
   }
 
-  await servidorPainel.shutdown();
+  controladorEncerramentoSse.abort();
+
+  let timeoutId!: ReturnType<typeof setTimeout>;
+  const tempoLimite = new Promise<void>((resolve) => {
+    timeoutId = setTimeout(() => resolve(), TEMPO_LIMITE_SHUTDOWN_PAINEL_MS);
+  });
+
+  await Promise.race([servidorPainel.shutdown(), tempoLimite]);
+  clearTimeout(timeoutId);
+
   Deno.exit(0);
 }
 
@@ -37,6 +49,7 @@ const aplicacaoPainel = await criarAplicacaoPainel({
   encerrarProcesso: () => {
     void encerrarProcesso();
   },
+  sinalEncerramento: controladorEncerramentoSse.signal,
 });
 
 const servidorPainel = Deno.serve(

@@ -2,7 +2,7 @@
   "tasks": {
     "dev": "deno run --watch --allow-net --allow-read=./dados,./src --allow-write=./dados --allow-sys=networkInterfaces --allow-run=cmd,open,xdg-open src/principal.ts",
     "start": "deno run --allow-net --allow-read=./dados,./src --allow-write=./dados --allow-sys=networkInterfaces --allow-run=cmd,open,xdg-open src/principal.ts",
-    "test": "deno test --allow-net --allow-read=./dados,./src --allow-write=./dados --allow-sys=networkInterfaces testes/",
+    "test": "deno test --allow-net --allow-read=./dados,./src,./testes --allow-write=./dados --allow-sys=networkInterfaces testes/",
     "check": "deno check src/ testes/",
     "lint": "deno lint",
     "fmt": "deno fmt",

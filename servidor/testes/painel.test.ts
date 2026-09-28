@@ -12,6 +12,7 @@ async function criarAppDeTeste() {
     token: TOKEN,
     obterPortaPainel: () => PORTA_PAINEL,
     encerrarProcesso: () => {},
+    sinalEncerramento: new AbortController().signal,
   });
   return app;
 }

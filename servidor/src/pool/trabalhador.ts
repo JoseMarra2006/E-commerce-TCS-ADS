@@ -1,5 +1,7 @@
 /// <reference lib="deno.worker" />
 import { criarAplicacao } from "../aplicacao.ts";
+import { abrirConexao, fecharConexao } from "../banco/conexao.ts";
+import type { ConexaoBanco } from "../banco/conexao.ts";
 import { mascararCorpoParaRegistro } from "../utilitarios/mascarar.ts";
 import {
   CABECALHOS_CORS_ENTRADAS,
@@ -13,6 +15,7 @@ type MensagemRequisicao = Extract<MensagemParaThread, { tipo: "requisicao" }>;
 
 let numeroThreadAtual: number | null = null;
 let aplicacao: Aplicacao | null = null;
+let conexaoAtual: ConexaoBanco | null = null;
 
 function enviarMensagem(mensagem: MensagemDaThread): void {
   self.postMessage(mensagem);
@@ -88,7 +91,20 @@ self.onmessage = (evento: MessageEvent<unknown>) => {
 
   if (mensagem.tipo === "iniciar") {
     numeroThreadAtual = mensagem.numero;
-    aplicacao = criarAplicacao();
+    try {
+      conexaoAtual = abrirConexao(mensagem.caminhoBanco);
+    } catch (erro) {
+      const mensagemErro = erro instanceof Error
+        ? erro.message
+        : "Não foi possível abrir o banco de dados.";
+      enviarMensagem({
+        tipo: "falha_inicializacao",
+        numero: numeroThreadAtual,
+        mensagem: mensagemErro,
+      });
+      return;
+    }
+    aplicacao = criarAplicacao({ conexao: conexaoAtual });
     enviarMensagem({ tipo: "pronta", numero: numeroThreadAtual });
     return;
   }
@@ -99,6 +115,10 @@ self.onmessage = (evento: MessageEvent<unknown>) => {
   }
 
   if (mensagem.tipo === "encerrar") {
+    if (conexaoAtual !== null) {
+      fecharConexao(conexaoAtual);
+      conexaoAtual = null;
+    }
     enviarMensagem({ tipo: "encerrada", numero: numeroThreadAtual ?? 0 });
     self.close();
   }

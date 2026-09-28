@@ -21,6 +21,7 @@ export interface OpcoesAplicacaoPainel {
   token: string;
   obterPortaPainel: () => number;
   encerrarProcesso: () => void;
+  sinalEncerramento: AbortSignal;
 }
 
 function compararEmTempoConstante(a: string, b: string): boolean {
@@ -128,6 +129,10 @@ export async function criarAplicacaoPainel(
   });
 
   app.get("/eventos", (c) => {
+    if (opcoes.sinalEncerramento.aborted) {
+      return c.text("Servidor encerrando.", 503);
+    }
+
     return streamSSE(c, async (stream) => {
       let ativo = true;
       let resolvedorEspera: (() => void) | null = null;
@@ -187,7 +192,10 @@ export async function criarAplicacaoPainel(
         enfileirar("ping", "");
       }, INTERVALO_PING_MS);
 
-      stream.onAbort(() => {
+      const finalizarConexao = () => {
+        if (!ativo) {
+          return;
+        }
         ativo = false;
         opcoes.controlador.removeEventListener("estado", listenerEstado);
         opcoes.controlador.removeEventListener("registro", listenerRegistro);
@@ -195,8 +203,15 @@ export async function criarAplicacaoPainel(
         if (temporizadorThrottle !== null) {
           clearTimeout(temporizadorThrottle);
         }
+        opcoes.sinalEncerramento.removeEventListener(
+          "abort",
+          finalizarConexao,
+        );
         acordar();
-      });
+      };
+
+      opcoes.sinalEncerramento.addEventListener("abort", finalizarConexao);
+      stream.onAbort(finalizarConexao);
 
       await stream.writeSSE({
         event: "estado",
