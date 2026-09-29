@@ -5,6 +5,7 @@ import {
   criarCaminhoBancoTemporario,
   removerBancoTemporario,
 } from "./auxiliares/banco-temporario.ts";
+import { SEGREDO_TESTE } from "./auxiliares/segredo-temporario.ts";
 
 function assertCabecalhosCors(headers: Headers) {
   assertEquals(headers.get("Access-Control-Allow-Origin"), "*");
@@ -22,7 +23,7 @@ Deno.test("GET em rota inexistente retorna 404 com CORS", async () => {
   const caminho = criarCaminhoBancoTemporario();
   const conexao = abrirConexao(caminho);
   try {
-    const app = criarAplicacao({ conexao });
+    const app = criarAplicacao({ conexao, segredoJwt: SEGREDO_TESTE });
     const resposta = await app.request("/api/v1/qualquer");
     assertEquals(resposta.status, 404);
     assertEquals(await resposta.json(), { mensagem: "Rota não encontrada." });
@@ -41,7 +42,7 @@ Deno.test("GET em rota inexistente com barra final retorna 404 com CORS", async 
   const caminho = criarCaminhoBancoTemporario();
   const conexao = abrirConexao(caminho);
   try {
-    const app = criarAplicacao({ conexao });
+    const app = criarAplicacao({ conexao, segredoJwt: SEGREDO_TESTE });
     const resposta = await app.request("/api/v1/qualquer/");
     assertEquals(resposta.status, 404);
     assertCabecalhosCors(resposta.headers);
@@ -56,7 +57,7 @@ for (const metodo of ["POST", "PUT", "PATCH", "DELETE"]) {
     const caminho = criarCaminhoBancoTemporario();
     const conexao = abrirConexao(caminho);
     try {
-      const app = criarAplicacao({ conexao });
+      const app = criarAplicacao({ conexao, segredoJwt: SEGREDO_TESTE });
       const resposta = await app.request("/api/v1/qualquer", {
         method: metodo,
       });
@@ -73,7 +74,7 @@ Deno.test("OPTIONS em caminho existente retorna 204 com CORS", async () => {
   const caminho = criarCaminhoBancoTemporario();
   const conexao = abrirConexao(caminho);
   try {
-    const app = criarAplicacao({ conexao });
+    const app = criarAplicacao({ conexao, segredoJwt: SEGREDO_TESTE });
     app.get("/api/v1/existe", (c) => c.json({ ok: true }));
 
     const resposta = await app.request("/api/v1/existe", { method: "OPTIONS" });
@@ -90,7 +91,7 @@ Deno.test("OPTIONS em caminho inexistente retorna 204 com CORS", async () => {
   const caminho = criarCaminhoBancoTemporario();
   const conexao = abrirConexao(caminho);
   try {
-    const app = criarAplicacao({ conexao });
+    const app = criarAplicacao({ conexao, segredoJwt: SEGREDO_TESTE });
     const resposta = await app.request("/api/v1/nao-existe", {
       method: "OPTIONS",
     });
@@ -107,7 +108,7 @@ Deno.test("rota que lança erro retorna 500 com CORS", async () => {
   const caminho = criarCaminhoBancoTemporario();
   const conexao = abrirConexao(caminho);
   try {
-    const app = criarAplicacao({ conexao });
+    const app = criarAplicacao({ conexao, segredoJwt: SEGREDO_TESTE });
     app.get("/api/v1/explode", () => {
       throw new Error("falha proposital");
     });

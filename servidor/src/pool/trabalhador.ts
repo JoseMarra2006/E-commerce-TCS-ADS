@@ -104,7 +104,10 @@ self.onmessage = (evento: MessageEvent<unknown>) => {
       });
       return;
     }
-    aplicacao = criarAplicacao({ conexao: conexaoAtual });
+    aplicacao = criarAplicacao({
+      conexao: conexaoAtual,
+      segredoJwt: mensagem.segredoJwt,
+    });
     enviarMensagem({ tipo: "pronta", numero: numeroThreadAtual });
     return;
   }

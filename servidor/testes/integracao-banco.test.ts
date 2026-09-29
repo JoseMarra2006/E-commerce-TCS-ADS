@@ -8,6 +8,11 @@ import {
   criarCaminhoBancoTemporario,
   removerBancoTemporario,
 } from "./auxiliares/banco-temporario.ts";
+import {
+  criarCaminhoSegredoTemporario,
+  removerSegredoTemporario,
+  SEGREDO_TESTE,
+} from "./auxiliares/segredo-temporario.ts";
 
 function obterPortaLivre(): number {
   const listener = Deno.listen({ port: 0 });
@@ -18,7 +23,11 @@ function obterPortaLivre(): number {
 
 Deno.test("preparar o banco cria as tabelas antes de emitir servidor iniciado", async () => {
   const caminhoBanco = criarCaminhoBancoTemporario();
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
   const porta = obterPortaLivre();
 
   try {
@@ -57,12 +66,17 @@ Deno.test("preparar o banco cria as tabelas antes de emitir servidor iniciado", 
   } finally {
     await controlador.parar();
     removerBancoTemporario(caminhoBanco);
+    removerSegredoTemporario(caminhoSegredoJwt);
   }
 });
 
 Deno.test("threads ficam prontas e atendem requisicoes com o banco integrado", async () => {
   const caminhoBanco = criarCaminhoBancoTemporario();
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
   const porta = obterPortaLivre();
 
   try {
@@ -87,18 +101,24 @@ Deno.test("threads ficam prontas e atendem requisicoes com o banco integrado", a
   } finally {
     await controlador.parar();
     removerBancoTemporario(caminhoBanco);
+    removerSegredoTemporario(caminhoSegredoJwt);
   }
 });
 
 Deno.test("parar libera todas as conexoes do banco", async () => {
   const caminhoBanco = criarCaminhoBancoTemporario();
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
   const porta = obterPortaLivre();
 
   await controlador.iniciar(porta);
   await controlador.parar();
 
   removerBancoTemporario(caminhoBanco);
+  removerSegredoTemporario(caminhoSegredoJwt);
 
   let existeArquivo = true;
   try {
@@ -115,7 +135,11 @@ Deno.test("parar libera todas as conexoes do banco", async () => {
 
 Deno.test("reiniciar com o mesmo banco preserva os dados gravados", async () => {
   const caminhoBanco = criarCaminhoBancoTemporario();
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
   const porta = obterPortaLivre();
 
   try {
@@ -134,7 +158,10 @@ Deno.test("reiniciar com o mesmo banco preserva os dados gravados", async () => 
       fecharConexao(conexaoEscrita);
     }
 
-    const controladorNovo = new ControladorServidor({ caminhoBanco });
+    const controladorNovo = new ControladorServidor({
+      caminhoBanco,
+      caminhoSegredoJwt,
+    });
     const resultadoNovo = await controladorNovo.iniciar(porta);
     assertEquals(resultadoNovo.ok, true);
     await controladorNovo.parar();
@@ -152,6 +179,7 @@ Deno.test("reiniciar com o mesmo banco preserva os dados gravados", async () => 
   } finally {
     await controlador.parar();
     removerBancoTemporario(caminhoBanco);
+    removerSegredoTemporario(caminhoSegredoJwt);
   }
 });
 
@@ -163,7 +191,11 @@ Deno.test("falha na preparacao do banco impede a criacao de threads", async () =
   Deno.writeTextFileSync(caminhoArquivoBloqueador, "bloqueio");
 
   const caminhoBanco = `${caminhoArquivoBloqueador}/banco.db`;
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
   const porta = obterPortaLivre();
 
   try {
@@ -197,7 +229,7 @@ Deno.test("falha ao abrir o banco nas threads rejeita a inicializacao do pool", 
 
   let erroCapturado: unknown;
   try {
-    await pool.iniciar(caminhoInvalido);
+    await pool.iniciar(caminhoInvalido, SEGREDO_TESTE);
   } catch (erro) {
     erroCapturado = erro;
   }

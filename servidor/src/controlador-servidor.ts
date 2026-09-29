@@ -9,6 +9,11 @@ import {
   obterCaminhoBanco,
 } from "./banco/conexao.ts";
 import { executarMigracoes } from "./banco/migracoes.ts";
+import {
+  carregarOuGerarSegredoJwt,
+  obterCaminhoSegredoJwt,
+} from "./utilitarios/segredo-jwt.ts";
+import type { ResultadoSegredoJwt } from "./utilitarios/segredo-jwt.ts";
 
 const LIMITE_REGISTROS = 500;
 
@@ -19,6 +24,7 @@ export interface ResultadoOperacao {
 
 export interface OpcoesControladorServidor {
   caminhoBanco?: string;
+  caminhoSegredoJwt?: string;
 }
 
 export class ControladorServidor extends EventTarget {
@@ -30,10 +36,13 @@ export class ControladorServidor extends EventTarget {
   private recepcao: Recepcao | null = null;
   private readonly registros: Registro[] = [];
   private readonly caminhoBanco: string;
+  private readonly caminhoSegredoJwt: string;
 
   constructor(opcoes: OpcoesControladorServidor = {}) {
     super();
     this.caminhoBanco = opcoes.caminhoBanco ?? obterCaminhoBanco();
+    this.caminhoSegredoJwt = opcoes.caminhoSegredoJwt ??
+      obterCaminhoSegredoJwt();
   }
 
   async iniciar(porta: number): Promise<ResultadoOperacao> {
@@ -68,6 +77,22 @@ export class ControladorServidor extends EventTarget {
 
     this.registrarSistema("info", "Banco de dados preparado.");
 
+    let resultadoSegredo: ResultadoSegredoJwt;
+    try {
+      resultadoSegredo = carregarOuGerarSegredoJwt(this.caminhoSegredoJwt);
+    } catch (erro: unknown) {
+      const mensagemOriginal = erro instanceof Error
+        ? erro.message
+        : String(erro);
+      const mensagem =
+        `Não foi possível carregar o segredo do JWT: ${mensagemOriginal}.`;
+      this.mensagemErro = mensagem;
+      this.definirStatus("erro");
+      return { ok: false, mensagem };
+    }
+
+    this.registrarSituacaoSegredo(resultadoSegredo.situacao);
+
     const pool = new GerenciadorPool();
     this.pool = pool;
     pool.addEventListener("estado", () => this.emitirEstado());
@@ -79,7 +104,7 @@ export class ControladorServidor extends EventTarget {
     });
 
     try {
-      await pool.iniciar(this.caminhoBanco);
+      await pool.iniciar(this.caminhoBanco, resultadoSegredo.segredo);
     } catch (erro: unknown) {
       this.pool = null;
       const mensagem = erro instanceof Error
@@ -192,6 +217,21 @@ export class ControladorServidor extends EventTarget {
       nivel,
       mensagem,
     });
+  }
+
+  private registrarSituacaoSegredo(
+    situacao: ResultadoSegredoJwt["situacao"],
+  ): void {
+    if (situacao === "carregado") {
+      this.registrarSistema("info", "Segredo do JWT carregado.");
+    } else if (situacao === "gerado") {
+      this.registrarSistema("info", "Segredo do JWT gerado.");
+    } else {
+      this.registrarSistema(
+        "erro",
+        "O segredo do JWT estava inválido e foi substituído. As sessões anteriores deixaram de ser válidas.",
+      );
+    }
   }
 
   private mensagemDeErroRecepcao(erro: unknown, porta: number): string {

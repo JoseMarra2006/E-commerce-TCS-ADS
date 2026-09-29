@@ -97,6 +97,7 @@ export class GerenciadorPool extends EventTarget {
   private contadorRodizio = 0;
   private encerrando = false;
   private caminhoBanco = "";
+  private segredoJwt = "";
 
   constructor() {
     super();
@@ -107,8 +108,9 @@ export class GerenciadorPool extends EventTarget {
     );
   }
 
-  async iniciar(caminhoBanco: string): Promise<void> {
+  async iniciar(caminhoBanco: string, segredoJwt: string): Promise<void> {
     this.caminhoBanco = caminhoBanco;
+    this.segredoJwt = segredoJwt;
 
     const promessasResultado: Promise<ResultadoInicializacaoThread>[] = [];
     for (let numero = 1; numero <= this.quantidadeThreads; numero++) {
@@ -274,6 +276,7 @@ export class GerenciadorPool extends EventTarget {
         tipo: "iniciar",
         numero,
         caminhoBanco: this.caminhoBanco,
+        segredoJwt: this.segredoJwt,
       };
       worker.postMessage(mensagem);
     });

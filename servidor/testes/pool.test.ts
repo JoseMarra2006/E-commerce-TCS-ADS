@@ -4,6 +4,10 @@ import {
   criarCaminhoBancoTemporario,
   removerBancoTemporario,
 } from "./auxiliares/banco-temporario.ts";
+import {
+  criarCaminhoSegredoTemporario,
+  removerSegredoTemporario,
+} from "./auxiliares/segredo-temporario.ts";
 
 function obterPortaLivre(): number {
   const listener = Deno.listen({ port: 0 });
@@ -14,7 +18,11 @@ function obterPortaLivre(): number {
 
 Deno.test("processa 50 requisições simultâneas usando o pool de threads", async () => {
   const caminhoBanco = criarCaminhoBancoTemporario();
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
   const porta = obterPortaLivre();
 
   try {
@@ -45,12 +53,17 @@ Deno.test("processa 50 requisições simultâneas usando o pool de threads", asy
   } finally {
     await controlador.parar();
     removerBancoTemporario(caminhoBanco);
+    removerSegredoTemporario(caminhoSegredoJwt);
   }
 });
 
 Deno.test("substituirThread mantém o servidor respondendo com a mesma quantidade de threads", async () => {
   const caminhoBanco = criarCaminhoBancoTemporario();
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
   const porta = obterPortaLivre();
 
   try {
@@ -70,12 +83,17 @@ Deno.test("substituirThread mantém o servidor respondendo com a mesma quantidad
   } finally {
     await controlador.parar();
     removerBancoTemporario(caminhoBanco);
+    removerSegredoTemporario(caminhoSegredoJwt);
   }
 });
 
 Deno.test("iniciar novamente na mesma porta enquanto em execução falha", async () => {
   const caminhoBanco = criarCaminhoBancoTemporario();
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
   const porta = obterPortaLivre();
 
   try {
@@ -85,6 +103,7 @@ Deno.test("iniciar novamente na mesma porta enquanto em execução falha", async
   } finally {
     await controlador.parar();
     removerBancoTemporario(caminhoBanco);
+    removerSegredoTemporario(caminhoSegredoJwt);
   }
 });
 
@@ -92,7 +111,11 @@ Deno.test("iniciar em porta ocupada falha com mensagem apropriada", async () => 
   const caminhoBanco = criarCaminhoBancoTemporario();
   const porta = obterPortaLivre();
   const listenerOcupando = Deno.listen({ port: porta });
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
 
   try {
     const resultado = await controlador.iniciar(porta);
@@ -106,12 +129,17 @@ Deno.test("iniciar em porta ocupada falha com mensagem apropriada", async () => 
   } finally {
     listenerOcupando.close();
     removerBancoTemporario(caminhoBanco);
+    removerSegredoTemporario(caminhoSegredoJwt);
   }
 });
 
 Deno.test("parar interrompe o servidor e novas conexões são recusadas", async () => {
   const caminhoBanco = criarCaminhoBancoTemporario();
-  const controlador = new ControladorServidor({ caminhoBanco });
+  const caminhoSegredoJwt = criarCaminhoSegredoTemporario();
+  const controlador = new ControladorServidor({
+    caminhoBanco,
+    caminhoSegredoJwt,
+  });
   const porta = obterPortaLivre();
 
   try {
@@ -129,5 +157,6 @@ Deno.test("parar interrompe o servidor e novas conexões são recusadas", async 
     assertEquals(conexaoRecusada, true);
   } finally {
     removerBancoTemporario(caminhoBanco);
+    removerSegredoTemporario(caminhoSegredoJwt);
   }
 });

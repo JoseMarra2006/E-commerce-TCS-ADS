@@ -1,5 +1,10 @@
 export type MensagemParaThread =
-  | { tipo: "iniciar"; numero: number; caminhoBanco: string }
+  | {
+    tipo: "iniciar";
+    numero: number;
+    caminhoBanco: string;
+    segredoJwt: string;
+  }
   | {
     tipo: "requisicao";
     id: number;
@@ -40,7 +45,8 @@ export function ehMensagemParaThread(
   if (objeto.tipo === "iniciar") {
     return (
       typeof objeto.numero === "number" &&
-      typeof objeto.caminhoBanco === "string"
+      typeof objeto.caminhoBanco === "string" &&
+      typeof objeto.segredoJwt === "string"
     );
   }
 
