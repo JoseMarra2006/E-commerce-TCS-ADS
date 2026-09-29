@@ -1,3 +1,4 @@
+import "./auxiliares/vigia-arquivos-reais.ts";
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { criarAplicacaoPainel } from "../src/painel/aplicacao-painel.ts";
 import { ControladorServidor } from "../src/controlador-servidor.ts";

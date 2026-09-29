@@ -1,3 +1,4 @@
+import "./auxiliares/vigia-arquivos-reais.ts";
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { abrirConexao, fecharConexao } from "../src/banco/conexao.ts";
 import { executarMigracoes } from "../src/banco/migracoes.ts";

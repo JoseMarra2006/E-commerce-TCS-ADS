@@ -1,5 +1,6 @@
 import { Hono } from "@hono/hono";
 import { intermediarioCors } from "./intermediarios/cors.ts";
+import { registrarRotasUsuarios } from "./modulos/usuarios/rotas-usuarios.ts";
 import { MENSAGEM_ERRO_INTERNO } from "./utilitarios/respostas-erro.ts";
 import type { ConexaoBanco } from "./banco/conexao.ts";
 import type { UsuarioRegistro } from "./modulos/usuarios/tipos-usuarios.ts";
@@ -33,6 +34,8 @@ export function criarAplicacao(
     c.set("segredoJwt", opcoes.segredoJwt);
     await next();
   });
+
+  registrarRotasUsuarios(app);
 
   app.onError((_erro, c) => {
     return c.json({ mensagem: MENSAGEM_ERRO_INTERNO }, 500, {

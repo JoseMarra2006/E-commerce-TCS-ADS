@@ -1,3 +1,4 @@
+import "./auxiliares/vigia-arquivos-reais.ts";
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { basename, dirname } from "node:path";
 import {

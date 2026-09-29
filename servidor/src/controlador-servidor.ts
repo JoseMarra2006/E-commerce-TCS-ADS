@@ -109,7 +109,7 @@ export class ControladorServidor extends EventTarget {
       this.pool = null;
       const mensagem = erro instanceof Error
         ? erro.message
-        : "As threads de processamento não puderam ser iniciadas.";
+        : "As threads de processamento não puderam ser iniciadas. Tente iniciar o servidor novamente.";
       this.mensagemErro = mensagem;
       this.definirStatus("erro");
       return { ok: false, mensagem };

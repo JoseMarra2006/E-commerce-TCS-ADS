@@ -1,3 +1,4 @@
+import "./auxiliares/vigia-arquivos-reais.ts";
 import { assert, assertEquals } from "@std/assert";
 import { sign } from "@hono/hono/jwt";
 import { criarAplicacao } from "../src/aplicacao.ts";

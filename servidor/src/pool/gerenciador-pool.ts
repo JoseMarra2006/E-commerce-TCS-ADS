@@ -3,7 +3,7 @@ import type { MensagemDaThread, MensagemParaThread } from "./mensagens.ts";
 
 const QUANTIDADE_MINIMA_THREADS = 2;
 const QUANTIDADE_MAXIMA_THREADS = 8;
-const TEMPO_LIMITE_INICIALIZACAO_MS = 10000;
+const TEMPO_LIMITE_INICIALIZACAO_MS = 60000;
 const TEMPO_LIMITE_REQUISICAO_MS = 30000;
 const TEMPO_LIMITE_ENCERRAMENTO_THREAD_MS = 2000;
 const MAXIMO_TENTATIVAS_SUBSTITUICAO = 3;
@@ -139,7 +139,7 @@ export class GerenciadorPool extends EventTarget {
     if (resultadoCorrida.tipo === "tempo_esgotado") {
       await this.encerrar();
       throw new Error(
-        "As threads de processamento não puderam ser iniciadas.",
+        "As threads de processamento não ficaram prontas em 60 segundos. Tente iniciar o servidor novamente.",
       );
     }
 
@@ -151,7 +151,9 @@ export class GerenciadorPool extends EventTarget {
     if (falha !== undefined) {
       await this.encerrar();
       throw new Error(
-        `Não foi possível abrir o banco de dados nas threads: ${falha.mensagem}.`,
+        `Não foi possível abrir o banco de dados nas threads: ${
+          falha.mensagem.replace(/\.+$/, "")
+        }.`,
       );
     }
   }

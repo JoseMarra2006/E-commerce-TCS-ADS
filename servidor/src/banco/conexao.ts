@@ -16,9 +16,9 @@ export function abrirConexao(caminhoBanco: string): ConexaoBanco {
   let conexao: ConexaoBanco | undefined;
   try {
     conexao = new DatabaseSync(caminhoBanco);
+    conexao.exec("PRAGMA busy_timeout = 5000;");
     conexao.exec("PRAGMA journal_mode = WAL;");
     conexao.exec("PRAGMA foreign_keys = ON;");
-    conexao.exec("PRAGMA busy_timeout = 5000;");
     const linha = conexao.prepare("PRAGMA journal_mode;").get() as
       | { journal_mode: string }
       | undefined;
