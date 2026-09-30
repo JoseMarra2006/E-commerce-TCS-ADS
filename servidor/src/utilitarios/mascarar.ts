@@ -62,8 +62,14 @@ export function mascararCorpoParaRegistro(
   }
 
   if (ehJsonValido) {
-    const valorMascarado = mascararValorRecursivo(valorAnalisado);
-    return truncarSeNecessario(JSON.stringify(valorMascarado));
+    try {
+      const valorMascarado = mascararValorRecursivo(valorAnalisado);
+      return truncarSeNecessario(JSON.stringify(valorMascarado));
+    } catch (erro) {
+      if (!(erro instanceof RangeError)) {
+        throw erro;
+      }
+    }
   }
 
   const textoMascarado = texto.replace(

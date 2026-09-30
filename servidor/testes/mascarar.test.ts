@@ -1,4 +1,4 @@
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { mascararCorpoParaRegistro } from "../src/utilitarios/mascarar.ts";
 
 Deno.test("mascararCorpoParaRegistro retorna null para null", () => {
@@ -62,4 +62,15 @@ Deno.test("mascararCorpoParaRegistro trunca textos maiores que 5000 caracteres",
   const resultado = mascararCorpoParaRegistro(textoGrande) as string;
   assertEquals(resultado.length, 5000 + " (truncado)".length);
   assertStringIncludes(resultado, "(truncado)");
+});
+
+Deno.test("mascararCorpoParaRegistro não falha com JSON muito aninhado e ainda mascara a senha", () => {
+  const profundo = "[".repeat(5000) + "]".repeat(5000);
+  const resultado = mascararCorpoParaRegistro(
+    `{"senha":"segredo123","aninhado":${profundo}}`,
+  );
+  assert(resultado !== null);
+  assertEquals(resultado.includes("segredo123"), false);
+  assert(resultado.includes('"senha": "***"'));
+  assert(mascararCorpoParaRegistro(profundo) !== null);
 });

@@ -17,6 +17,14 @@ let numeroThreadAtual: number | null = null;
 let aplicacao: Aplicacao | null = null;
 let conexaoAtual: ConexaoBanco | null = null;
 
+function mascararSemFalhar(texto: string | null): string | null {
+  try {
+    return mascararCorpoParaRegistro(texto);
+  } catch {
+    return null;
+  }
+}
+
 function enviarMensagem(mensagem: MensagemDaThread): void {
   self.postMessage(mensagem);
 }
@@ -33,8 +41,8 @@ function montarRespostaDeErro(mensagem: MensagemRequisicao): MensagemDaThread {
       ...CABECALHOS_CORS_ENTRADAS,
     ],
     corpo: corpoErro,
-    corpoRecebidoRegistro: mascararCorpoParaRegistro(mensagem.corpo),
-    corpoEnviadoRegistro: mascararCorpoParaRegistro(corpoErro),
+    corpoRecebidoRegistro: mascararSemFalhar(mensagem.corpo),
+    corpoEnviadoRegistro: mascararSemFalhar(corpoErro),
   };
 }
 
@@ -46,7 +54,7 @@ async function processarRequisicao(
       throw new Error("A aplicação da thread não foi iniciada.");
     }
 
-    const corpoRecebidoRegistro = mascararCorpoParaRegistro(mensagem.corpo);
+    const corpoRecebidoRegistro = mascararSemFalhar(mensagem.corpo);
     const metodoSemCorpo = mensagem.metodo === "GET" ||
       mensagem.metodo === "HEAD";
 
@@ -75,7 +83,7 @@ async function processarRequisicao(
       cabecalhos: Array.from(resposta.headers),
       corpo: corpoResposta,
       corpoRecebidoRegistro,
-      corpoEnviadoRegistro: mascararCorpoParaRegistro(corpoResposta),
+      corpoEnviadoRegistro: mascararSemFalhar(corpoResposta),
     });
   } catch {
     enviarMensagem(montarRespostaDeErro(mensagem));
