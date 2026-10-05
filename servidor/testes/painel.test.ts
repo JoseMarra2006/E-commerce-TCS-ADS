@@ -35,6 +35,22 @@ Deno.test("GET / com Host correto retorna a página com o token", async () => {
   );
 });
 
+Deno.test("GET /favicon.svg retorna o ícone com o tipo correto e respeita o Host", async () => {
+  const app = await criarAppDeTeste();
+
+  const resposta = await app.request("/favicon.svg", {
+    headers: { Host: `127.0.0.1:${PORTA_PAINEL}` },
+  });
+  assertEquals(resposta.status, 200);
+  assertEquals(resposta.headers.get("Content-Type"), "image/svg+xml");
+  assertStringIncludes(await resposta.text(), "<svg");
+
+  const negada = await app.request("/favicon.svg", {
+    headers: { Host: "exemplo-malicioso.com" },
+  });
+  assertEquals(negada.status, 403);
+});
+
 Deno.test("qualquer rota com Host de outro domínio retorna 403", async () => {
   const app = await criarAppDeTeste();
 

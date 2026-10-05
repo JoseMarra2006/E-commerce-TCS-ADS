@@ -1,6 +1,10 @@
 import type { Operacoes, ResultadoOperacao } from "../api/operacoes.ts";
+import type { AvisoSessao } from "./contexto-sessao.ts";
 
-export const MENSAGEM_SESSAO_ENCERRADA = "Sua sessão foi encerrada. Faça login novamente.";
+export const AVISO_SESSAO_ENCERRADA: AvisoSessao = {
+  tipo: "aviso",
+  texto: "Sua sessão foi encerrada. Faça login novamente.",
+};
 
 export function envolverOperacoesComTratamento401(
   operacoes: Operacoes,

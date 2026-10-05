@@ -2,9 +2,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--espaco-3) var(--espaco-6);
+  min-height: 44px;
+  padding: var(--espaco-2) var(--espaco-6);
   border: 1px solid transparent;
-  border-radius: var(--raio-pequeno);
+  border-radius: var(--raio-pilula);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -18,29 +19,32 @@
 
 .primaria {
   background: var(--cor-primaria);
-  color: #ffffff;
+  color: var(--cor-sobre-primaria);
 }
 
 .primaria:hover:not(:disabled) {
   background: var(--cor-primaria-escura);
 }
 
+.primaria:active:not(:disabled) {
+  background: var(--cor-primaria-profunda);
+}
+
 .secundaria {
-  background: var(--cor-superficie);
-  border-color: var(--cor-borda);
-  color: var(--cor-texto);
+  background: transparent;
+  border-color: var(--cor-primaria-texto);
+  color: var(--cor-primaria-texto);
 }
 
 .secundaria:hover:not(:disabled) {
-  border-color: var(--cor-primaria);
-  color: var(--cor-primaria);
+  background: var(--cor-primaria-clara);
 }
 
 .perigo {
   background: var(--cor-erro);
-  color: #ffffff;
+  color: var(--cor-sobre-primaria);
 }
 
 .perigo:hover:not(:disabled) {
-  background: #b91c1c;
+  background: var(--cor-perigo-escura);
 }

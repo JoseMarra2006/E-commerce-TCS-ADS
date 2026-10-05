@@ -1,0 +1,85 @@
+.cartao {
+  position: relative;
+  width: 100%;
+  margin: var(--espaco-4) auto 0;
+  overflow: hidden;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+.estreita {
+  max-width: 440px;
+}
+
+.media {
+  max-width: 600px;
+}
+
+.superior {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  padding: var(--espaco-8) var(--espaco-8) var(--espaco-6);
+}
+
+.rotulo {
+  color: var(--cor-primaria-texto);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.titulo {
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.descricao {
+  color: var(--cor-texto-secundario);
+}
+
+.picote {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed var(--cor-borda-forte);
+}
+
+.picote::before,
+.picote::after {
+  content: "";
+  position: absolute;
+  top: -13px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 50%;
+  background: var(--cor-fundo);
+}
+
+.picote::before {
+  left: -12px;
+}
+
+.picote::after {
+  right: -12px;
+}
+
+.inferior {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+  padding: var(--espaco-6) var(--espaco-8) var(--espaco-8);
+}
+
+@media (max-width: 480px) {
+  .superior {
+    padding: var(--espaco-6) var(--espaco-4) var(--espaco-4);
+  }
+
+  .inferior {
+    padding: var(--espaco-4) var(--espaco-4) var(--espaco-6);
+  }
+}

@@ -1,0 +1,21 @@
+.alternar {
+  min-width: 84px;
+  min-height: 44px;
+  padding: 0 var(--espaco-3);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-pequeno);
+  background: transparent;
+  color: var(--cor-primaria-texto);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.alternar:hover:not(:disabled) {
+  background: var(--cor-primaria-clara);
+}
+
+.alternar:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}

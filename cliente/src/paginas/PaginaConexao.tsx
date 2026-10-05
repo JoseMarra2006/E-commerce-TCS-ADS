@@ -3,11 +3,14 @@ import type { FormEvent } from "react";
 import { Alerta } from "../componentes/Alerta.tsx";
 import { Botao } from "../componentes/Botao.tsx";
 import { CampoTexto } from "../componentes/CampoTexto.tsx";
+import { CartaoIngresso } from "../componentes/CartaoIngresso.tsx";
+import { LinkTexto } from "../componentes/LinkTexto.tsx";
 import { useConexao } from "../contextos/use-conexao.ts";
 import { useOperacoes } from "../contextos/use-operacoes.ts";
 import { useSessao } from "../contextos/use-sessao.ts";
 import { validarFormularioConexao } from "../validacao/validacao-campos.ts";
 import type { ErrosConexao } from "../validacao/validacao-campos.ts";
+import { useTituloPagina } from "./use-titulo-pagina.ts";
 import estilos from "./PaginaConexao.module.css";
 
 interface ResultadoExibido {
@@ -16,6 +19,7 @@ interface ResultadoExibido {
 }
 
 export function PaginaConexao() {
+  useTituloPagina("Conectar ao servidor");
   const { conexao, definirConexao } = useConexao();
   const { sessao, encerrarSessaoLocal } = useSessao();
   const operacoes = useOperacoes();
@@ -90,12 +94,12 @@ export function PaginaConexao() {
   }
 
   return (
-    <section className={estilos.cartao} aria-labelledby="titulo-conexao">
-      <h1 id="titulo-conexao" className={estilos.titulo}>Conectar ao servidor</h1>
-      <p className={estilos.descricao}>
-        Informe o IP e a porta do servidor que você deseja usar.
-      </p>
-
+    <CartaoIngresso
+      rotulo="Primeiro passo"
+      titulo="Conectar ao servidor"
+      descricao="Informe o IP e a porta do servidor que você deseja usar."
+      largura="estreita"
+    >
       {sessao !== null && (
         <Alerta
           tipo="aviso"
@@ -132,6 +136,11 @@ export function PaginaConexao() {
       </form>
 
       {resultado !== null && <Alerta tipo={resultado.tipo} mensagem={resultado.mensagem} />}
-    </section>
+      {resultado !== null && resultado.tipo === "sucesso" && (
+        <p className={estilos.continuar}>
+          <LinkTexto para="/">Continuar</LinkTexto>
+        </p>
+      )}
+    </CartaoIngresso>
   );
 }

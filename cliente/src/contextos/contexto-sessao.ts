@@ -7,13 +7,18 @@ export interface SessaoAtiva {
   usuario: RespostaUsuario;
 }
 
+export interface AvisoSessao {
+  tipo: "sucesso" | "info" | "aviso";
+  texto: string;
+}
+
 export interface ValorContextoSessao {
   sessao: SessaoAtiva | null;
-  avisoSessao: string | null;
+  avisoSessao: AvisoSessao | null;
   iniciarSessao: (resposta: RespostaSessao) => void;
   atualizarUsuario: (usuario: RespostaUsuario) => void;
-  encerrarSessaoLocal: (aviso?: string) => void;
-  consumirAvisoSessao: () => string | null;
+  encerrarSessaoLocal: (aviso?: AvisoSessao) => void;
+  consumirAvisoSessao: () => AvisoSessao | null;
 }
 
 export const ContextoSessao = createContext<ValorContextoSessao | null>(null);

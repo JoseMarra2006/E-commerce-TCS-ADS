@@ -1,0 +1,23 @@
+.botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--cor-cabecalho-texto-suave);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cor-cabecalho-texto);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.botao:hover {
+  border-color: var(--cor-cabecalho-texto);
+}
+
+.botao:focus-visible {
+  outline-color: var(--cor-cabecalho-foco);
+}

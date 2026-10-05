@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Operacoes, ResultadoOperacao } from "../src/api/operacoes.ts";
-import { envolverOperacoesComTratamento401 } from "../src/contextos/tratamento-401.ts";
+import {
+  AVISO_SESSAO_ENCERRADA,
+  envolverOperacoesComTratamento401,
+} from "../src/contextos/tratamento-401.ts";
 
 const usuario = { id: 1, nome: "Ana Lima", email: "ana@exemplo.com" };
 
@@ -88,5 +91,14 @@ describe("envolverOperacoesComTratamento401", () => {
     expect(await envolvidas.sair("s", "t")).toEqual(original);
     expect(await envolvidas.verificarServidor()).toEqual(original);
     expect(chamadas).toBe(0);
+  });
+});
+
+describe("AVISO_SESSAO_ENCERRADA", () => {
+  it("é um aviso com o texto de sessão encerrada", () => {
+    expect(AVISO_SESSAO_ENCERRADA).toEqual({
+      tipo: "aviso",
+      texto: "Sua sessão foi encerrada. Faça login novamente.",
+    });
   });
 });

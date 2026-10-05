@@ -1,8 +1,8 @@
 .alerta {
   padding: var(--espaco-3) var(--espaco-4);
   border: 1px solid var(--cor-borda);
-  border-left-width: 4px;
   border-radius: var(--raio-pequeno);
+  color: var(--cor-texto);
   font-size: 0.95rem;
   overflow-wrap: anywhere;
 }
@@ -14,7 +14,7 @@
 
 .erro {
   background: var(--cor-fundo-erro);
-  border-color: var(--cor-erro);
+  border-color: var(--cor-erro-texto);
 }
 
 .aviso {
@@ -23,6 +23,6 @@
 }
 
 .info {
-  background: var(--cor-fundo);
-  border-color: var(--cor-primaria);
+  background: var(--cor-primaria-clara);
+  border-color: var(--cor-primaria-texto);
 }

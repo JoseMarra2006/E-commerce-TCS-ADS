@@ -1,0 +1,16 @@
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+.rodape {
+  color: var(--cor-texto-secundario);
+  font-size: 0.95rem;
+}
+
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-3);
+}

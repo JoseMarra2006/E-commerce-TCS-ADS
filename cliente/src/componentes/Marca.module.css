@@ -1,0 +1,28 @@
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-3);
+}
+
+.simbolo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-destaque);
+  color: var(--cor-sobre-destaque);
+}
+
+.raio {
+  width: 22px;
+  height: 22px;
+}
+
+.nome {
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}

@@ -5,8 +5,8 @@
 }
 
 .cabecalho {
-  background: var(--cor-superficie);
-  border-bottom: 1px solid var(--cor-borda);
+  background: var(--cor-cabecalho);
+  color: var(--cor-cabecalho-texto-suave);
   box-shadow: var(--sombra);
 }
 
@@ -20,34 +20,99 @@
   gap: var(--espaco-4);
 }
 
-.titulo {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--cor-primaria);
+.linkMarca {
+  color: var(--cor-cabecalho-texto);
+  text-decoration: none;
+  border-radius: var(--raio-pequeno);
+}
+
+.acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-4);
 }
 
 .conexao {
   display: flex;
   align-items: center;
   gap: var(--espaco-4);
-  color: var(--cor-texto-secundario);
   font-size: 0.925rem;
   overflow-wrap: anywhere;
 }
 
-.link {
-  color: var(--cor-primaria);
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+  min-width: 0;
+}
+
+.sair {
+  min-height: 44px;
+  padding: 0 var(--espaco-4);
+  border: 1px solid var(--cor-cabecalho-texto-suave);
+  border-radius: var(--raio-pilula);
+  background: transparent;
+  color: var(--cor-cabecalho-texto);
+  font-size: 0.925rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sair:hover:not(:disabled) {
+  border-color: var(--cor-cabecalho-texto);
+}
+
+.sair:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.sair:focus-visible {
+  outline-color: var(--cor-cabecalho-foco);
+}
+
+.saudacao {
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cor-cabecalho-texto);
   font-weight: 600;
 }
 
-.link:hover {
-  color: var(--cor-primaria-escura);
+.endereco {
+  color: var(--cor-cabecalho-texto);
+}
+
+.link {
+  color: var(--cor-cabecalho-texto);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.linkMarca:focus-visible,
+.link:focus-visible {
+  outline-color: var(--cor-cabecalho-foco);
+}
+
+.conteudo {
+  width: 100%;
+  flex: 1;
+  padding-top: var(--espaco-8);
+  padding-bottom: var(--espaco-8);
 }
 
 @media (max-width: 600px) {
   .cabecalhoInterno {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .acoes {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .conexao {

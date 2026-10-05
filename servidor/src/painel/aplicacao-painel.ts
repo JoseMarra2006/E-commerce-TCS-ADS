@@ -50,6 +50,9 @@ export async function criarAplicacaoPainel(
   const conteudoJs = await Deno.readTextFile(
     new URL("./painel.js", diretorioPublico),
   );
+  const conteudoIcone = await Deno.readTextFile(
+    new URL("./favicon.svg", diretorioPublico),
+  );
 
   const conteudoIndexComToken = conteudoIndex.replaceAll(
     MARCADOR_TOKEN,
@@ -125,6 +128,12 @@ export async function criarAplicacaoPainel(
   app.get("/painel.js", () => {
     return new Response(conteudoJs, {
       headers: { "Content-Type": "text/javascript; charset=utf-8" },
+    });
+  });
+
+  app.get("/favicon.svg", () => {
+    return new Response(conteudoIcone, {
+      headers: { "Content-Type": "image/svg+xml" },
     });
   });
 

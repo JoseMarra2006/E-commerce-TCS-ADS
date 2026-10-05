@@ -1,20 +1,36 @@
 :root {
-  --cor-fundo: #f5f7fa;
+  --cor-fundo: #f6f5fb;
   --cor-superficie: #ffffff;
-  --cor-texto: #1f2937;
-  --cor-texto-secundario: #6b7280;
-  --cor-borda: #e5e7eb;
-  --cor-primaria: #2563eb;
-  --cor-primaria-escura: #1d4ed8;
+  --cor-texto: #1e1b3a;
+  --cor-texto-secundario: #5b5875;
+  --cor-borda: #e4e2f0;
+  --cor-borda-forte: #c9c5e3;
+  --cor-primaria: #534ab7;
+  --cor-primaria-escura: #3c3489;
+  --cor-primaria-profunda: #26215c;
+  --cor-primaria-texto: #534ab7;
+  --cor-primaria-clara: #eeedfe;
+  --cor-sobre-primaria: #ffffff;
+  --cor-destaque: #ef9f27;
+  --cor-sobre-destaque: #412402;
+  --cor-cabecalho: #3c3489;
+  --cor-cabecalho-texto: #ffffff;
+  --cor-cabecalho-texto-suave: #cecbf6;
+  --cor-cabecalho-foco: #fac775;
   --cor-sucesso: #16a34a;
   --cor-aviso: #d97706;
   --cor-erro: #dc2626;
-  --cor-foco: #93c5fd;
+  --cor-erro-texto: #dc2626;
+  --cor-perigo-escura: #b91c1c;
+  --cor-foco: #7f77dd;
   --cor-fundo-sucesso: #f0fdf4;
   --cor-fundo-aviso: #fffbeb;
   --cor-fundo-erro: #fef2f2;
+  --sombra: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --cor-fundo-modal: rgba(30, 27, 58, 0.55);
   --raio: 12px;
   --raio-pequeno: 8px;
+  --raio-pilula: 999px;
   --espaco-1: 0.25rem;
   --espaco-2: 0.5rem;
   --espaco-3: 0.75rem;
@@ -23,7 +39,59 @@
   --espaco-8: 2rem;
   --fonte-texto: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --fonte-mono: ui-monospace, "Cascadia Code", Consolas, "Liberation Mono", monospace;
-  --sombra: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  color-scheme: light;
+}
+
+:root[data-tema="escuro"] {
+  --cor-fundo: #14121f;
+  --cor-superficie: #1e1b2e;
+  --cor-texto: #ecebf5;
+  --cor-texto-secundario: #aeaacb;
+  --cor-borda: #302c48;
+  --cor-borda-forte: #4b4672;
+  --cor-primaria: #5f56c9;
+  --cor-primaria-escura: #4a42a8;
+  --cor-primaria-profunda: #3c3489;
+  --cor-primaria-texto: #b3adf3;
+  --cor-primaria-clara: #2a2550;
+  --cor-cabecalho: #26215c;
+  --cor-sucesso: #4ade80;
+  --cor-aviso: #fbbf24;
+  --cor-erro-texto: #f87171;
+  --cor-foco: #b3adf3;
+  --cor-fundo-sucesso: #0f2a1a;
+  --cor-fundo-aviso: #2b2110;
+  --cor-fundo-erro: #321418;
+  --sombra: 0 2px 6px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --cor-fundo-modal: rgba(0, 0, 0, 0.65);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --cor-fundo: #14121f;
+    --cor-superficie: #1e1b2e;
+    --cor-texto: #ecebf5;
+    --cor-texto-secundario: #aeaacb;
+    --cor-borda: #302c48;
+    --cor-borda-forte: #4b4672;
+    --cor-primaria: #5f56c9;
+    --cor-primaria-escura: #4a42a8;
+    --cor-primaria-profunda: #3c3489;
+    --cor-primaria-texto: #b3adf3;
+    --cor-primaria-clara: #2a2550;
+    --cor-cabecalho: #26215c;
+    --cor-sucesso: #4ade80;
+    --cor-aviso: #fbbf24;
+    --cor-erro-texto: #f87171;
+    --cor-foco: #b3adf3;
+    --cor-fundo-sucesso: #0f2a1a;
+    --cor-fundo-aviso: #2b2110;
+    --cor-fundo-erro: #321418;
+    --sombra: 0 2px 6px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.4);
+    --cor-fundo-modal: rgba(0, 0, 0, 0.65);
+    color-scheme: dark;
+  }
 }
 
 *,

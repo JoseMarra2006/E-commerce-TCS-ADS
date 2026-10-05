@@ -9,10 +9,19 @@
   font-size: 0.925rem;
 }
 
+.linhaEntrada {
+  display: flex;
+  align-items: stretch;
+  gap: var(--espaco-2);
+}
+
 .entrada {
+  flex: 1;
+  min-width: 0;
   width: 100%;
-  padding: var(--espaco-3) var(--espaco-4);
-  border: 1px solid var(--cor-borda);
+  min-height: 44px;
+  padding: var(--espaco-2) var(--espaco-4);
+  border: 1px solid var(--cor-borda-forte);
   border-radius: var(--raio-pequeno);
   background: var(--cor-superficie);
   color: var(--cor-texto);
@@ -24,7 +33,7 @@
 }
 
 .entrada:focus {
-  border-color: var(--cor-primaria);
+  border-color: var(--cor-primaria-texto);
 }
 
 .entrada:disabled {
@@ -33,8 +42,9 @@
   cursor: not-allowed;
 }
 
-.comErro {
-  border-color: var(--cor-erro);
+.comErro,
+.comErro:focus {
+  border-color: var(--cor-erro-texto);
 }
 
 .ajuda {
@@ -43,6 +53,6 @@
 }
 
 .erro {
-  color: var(--cor-erro);
+  color: var(--cor-erro-texto);
   font-size: 0.875rem;
 }
