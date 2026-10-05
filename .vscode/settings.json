@@ -1,4 +1,4 @@
 {
-  "deno.enablePaths": ["./servidor"],
+  "deno.enablePaths": ["./servidor", "./cliente/intermediario"],
   "deno.lint": true
 }

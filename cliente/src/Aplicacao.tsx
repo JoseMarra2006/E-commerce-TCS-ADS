@@ -1,10 +1,8 @@
-function App() {
+export default function Aplicacao() {
   return (
-    <main>
+    <main className="aplicacao">
       <h1>E-commerce</h1>
       <p>Cliente em construção.</p>
     </main>
   );
 }
-
-export default App;
