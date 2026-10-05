@@ -5,6 +5,7 @@ import { useSessao } from "../contextos/use-sessao.ts";
 import { obterPrimeiroNome } from "../paginas/formatacao.ts";
 import { BotaoTema } from "./BotaoTema.tsx";
 import { Marca } from "./Marca.tsx";
+import { PainelMensagens } from "./painel-mensagens/PainelMensagens.tsx";
 import estilos from "./Layout.module.css";
 
 export function Layout() {
@@ -58,6 +59,7 @@ export function Layout() {
       <main className={`aplicacao ${estilos.conteudo}`}>
         <Outlet />
       </main>
+      <PainelMensagens />
     </div>
   );
 }

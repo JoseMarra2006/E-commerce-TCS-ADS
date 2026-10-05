@@ -37,6 +37,7 @@
   --espaco-4: 1rem;
   --espaco-6: 1.5rem;
   --espaco-8: 2rem;
+  --altura-barra-mensagens: 3.5rem;
   --fonte-texto: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --fonte-mono: ui-monospace, "Cascadia Code", Consolas, "Liberation Mono", monospace;
   color-scheme: light;
