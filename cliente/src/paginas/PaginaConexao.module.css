@@ -1,0 +1,34 @@
+.cartao {
+  width: 100%;
+  max-width: 480px;
+  margin: var(--espaco-8) auto 0;
+  padding: var(--espaco-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+.titulo {
+  font-size: 1.5rem;
+}
+
+.descricao {
+  color: var(--cor-texto-secundario);
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+}
+
+@media (max-width: 600px) {
+  .cartao {
+    margin-top: var(--espaco-4);
+    padding: var(--espaco-6);
+  }
+}

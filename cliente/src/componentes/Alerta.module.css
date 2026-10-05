@@ -1,0 +1,28 @@
+.alerta {
+  padding: var(--espaco-3) var(--espaco-4);
+  border: 1px solid var(--cor-borda);
+  border-left-width: 4px;
+  border-radius: var(--raio-pequeno);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.sucesso {
+  background: var(--cor-fundo-sucesso);
+  border-color: var(--cor-sucesso);
+}
+
+.erro {
+  background: var(--cor-fundo-erro);
+  border-color: var(--cor-erro);
+}
+
+.aviso {
+  background: var(--cor-fundo-aviso);
+  border-color: var(--cor-aviso);
+}
+
+.info {
+  background: var(--cor-fundo);
+  border-color: var(--cor-primaria);
+}
