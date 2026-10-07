@@ -1,7 +1,7 @@
 {
   "tasks": {
     "dev": "deno run --watch --allow-net src/principal.ts --desenvolvimento",
-    "start": "deno run --allow-net --allow-read=../dist --allow-run=cmd,open,xdg-open src/principal.ts",
+    "start": "deno run --allow-net --allow-read=../dist --allow-run=cmd,open,xdg-open,firefox src/principal.ts",
     "test": "deno test --allow-net --allow-read=./testes testes/",
     "check": "deno check src/ testes/",
     "lint": "deno lint",

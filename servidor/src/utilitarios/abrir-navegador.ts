@@ -1,36 +1,51 @@
-function montarComando(url: string): Deno.Command {
+interface TentativaAbertura {
+  programa: string;
+  argumentos: string[];
+}
+
+function montarTentativas(url: string): TentativaAbertura[] {
   if (Deno.build.os === "windows") {
-    return new Deno.Command("cmd", {
-      args: ["/c", "start", "", url],
-      stdin: "null",
-      stdout: "null",
-      stderr: "null",
-    });
+    return [
+      { programa: "cmd", argumentos: ["/c", "start", "", "firefox", url] },
+      { programa: "cmd", argumentos: ["/c", "start", "", url] },
+    ];
   }
 
   if (Deno.build.os === "darwin") {
-    return new Deno.Command("open", {
-      args: [url],
+    return [
+      { programa: "open", argumentos: ["-a", "Firefox", url] },
+      { programa: "open", argumentos: [url] },
+    ];
+  }
+
+  return [
+    { programa: "firefox", argumentos: [url] },
+    { programa: "xdg-open", argumentos: [url] },
+  ];
+}
+
+async function executarTentativa(
+  tentativa: TentativaAbertura,
+): Promise<boolean> {
+  try {
+    const comando = new Deno.Command(tentativa.programa, {
+      args: tentativa.argumentos,
       stdin: "null",
       stdout: "null",
       stderr: "null",
     });
-  }
-
-  return new Deno.Command("xdg-open", {
-    args: [url],
-    stdin: "null",
-    stdout: "null",
-    stderr: "null",
-  });
-}
-
-export async function abrirNavegador(url: string): Promise<boolean> {
-  try {
-    const comando = montarComando(url);
     const resultado = await comando.output();
     return resultado.success;
   } catch {
     return false;
   }
+}
+
+export async function abrirNavegador(url: string): Promise<boolean> {
+  for (const tentativa of montarTentativas(url)) {
+    if (await executarTentativa(tentativa)) {
+      return true;
+    }
+  }
+  return false;
 }
