@@ -1,7 +1,7 @@
 export interface PedidoEnvio {
   ip: string;
   porta: number;
-  metodo: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  metodo: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS";
   caminho: string;
   token: string | null;
   corpo: string | null;

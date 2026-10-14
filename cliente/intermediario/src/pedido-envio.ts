@@ -1,4 +1,4 @@
-export type MetodoEnvio = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+export type MetodoEnvio = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS";
 
 export interface PedidoEnvio {
   ip: string;
@@ -13,7 +13,14 @@ export type ResultadoValidacaoPedido =
   | { ok: true; pedido: PedidoEnvio }
   | { ok: false; mensagem: string };
 
-const METODOS: readonly MetodoEnvio[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+const METODOS: readonly MetodoEnvio[] = [
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "OPTIONS",
+];
 const CAMPOS: readonly string[] = ["ip", "porta", "metodo", "caminho", "token", "corpo"];
 const TAMANHO_MAXIMO_CORPO_BYTES = 1024 * 1024;
 const TAMANHO_MAXIMO_CAMINHO = 2048;
@@ -65,7 +72,7 @@ function validarPorta(valor: unknown): string | null {
 
 function validarMetodo(valor: unknown): string | null {
   if (typeof valor !== "string" || !METODOS.some((metodo) => metodo === valor)) {
-    return "O campo metodo do pedido deve ser GET, POST, PUT, PATCH ou DELETE.";
+    return "O campo metodo do pedido deve ser GET, POST, PUT, PATCH, DELETE ou OPTIONS.";
   }
   return null;
 }
@@ -104,8 +111,8 @@ function validarCorpo(valor: unknown, metodo: unknown): string | null {
   if (typeof valor !== "string") {
     return "O campo corpo do pedido deve ser nulo ou um texto.";
   }
-  if (metodo === "GET" || metodo === "DELETE") {
-    return "O campo corpo do pedido deve ser nulo nos métodos GET e DELETE.";
+  if (metodo === "GET" || metodo === "DELETE" || metodo === "OPTIONS") {
+    return "O campo corpo do pedido deve ser nulo nos métodos GET, DELETE e OPTIONS.";
   }
   if (new TextEncoder().encode(valor).length > TAMANHO_MAXIMO_CORPO_BYTES) {
     return "O campo corpo do pedido deve ter no máximo 1 MB.";

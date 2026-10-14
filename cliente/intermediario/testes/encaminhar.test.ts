@@ -60,6 +60,25 @@ Deno.test("GET sem token não envia Authorization nem Content-Type", async () =>
   }
 });
 
+Deno.test("OPTIONS chega ao destino sem corpo, sem Authorization e sem Content-Type", async () => {
+  const servidor = iniciarServidorFalso(() => new Response(null, { status: 204 }));
+  try {
+    const resultado = await encaminharRequisicao(
+      pedido(servidor.porta, { metodo: "OPTIONS", caminho: "/api/v1/sessions" }),
+    );
+    assertEquals(resultado.tipo === "resposta" && resultado.status, 204);
+    const recebida = servidor.requisicoes[0];
+    assert(recebida !== undefined);
+    assertEquals(recebida.metodo, "OPTIONS");
+    assertEquals(recebida.caminho, "/api/v1/sessions");
+    assertEquals(recebida.corpo.length, 0);
+    assertEquals(recebida.cabecalhos.get("authorization"), null);
+    assertEquals(recebida.cabecalhos.get("content-type"), null);
+  } finally {
+    await servidor.encerrar();
+  }
+});
+
 Deno.test("preserva status, nomes minúsculos de cabeçalhos e corpo de cada resposta", async () => {
   const respostas = new Map<string, Response>();
   const servidor = iniciarServidorFalso((requisicao) => {

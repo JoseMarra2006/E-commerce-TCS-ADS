@@ -98,7 +98,7 @@ function copiarAlteracoes(alteracoes: CorpoAtualizacaoParcial): CorpoAtualizacao
 
 async function verificar(cliente: ClienteHttp): Promise<ResultadoOperacao<ResultadoVerificacao>> {
   const inicio = performance.now();
-  const resultado = await cliente.enviar({ metodo: "GET", caminho: "/api/v1/sessions" });
+  const resultado = await cliente.enviar({ metodo: "OPTIONS", caminho: "/api/v1/sessions" });
   const duracaoMs = Math.round(performance.now() - inicio);
 
   if (resultado.ok) {

@@ -27,9 +27,10 @@ Deno.test("aceita IPs e nomes de host válidos", () => {
   }
 });
 
-Deno.test("aceita GET e DELETE sem corpo", () => {
+Deno.test("aceita GET, DELETE e OPTIONS sem corpo", () => {
   assert(validarPedidoEnvio(pedidoValido({ metodo: "GET", corpo: null })).ok);
   assert(validarPedidoEnvio(pedidoValido({ metodo: "DELETE", corpo: null })).ok);
+  assert(validarPedidoEnvio(pedidoValido({ metodo: "OPTIONS", corpo: null })).ok);
 });
 
 Deno.test("recusa valores que não são objeto", () => {
@@ -81,7 +82,7 @@ Deno.test("recusa porta inválida", () => {
 });
 
 Deno.test("recusa método inválido", () => {
-  for (const metodo of ["OPTIONS", "HEAD", "get", 1, null]) {
+  for (const metodo of ["HEAD", "TRACE", "CONNECT", "get", "options", 1, null]) {
     assertRecusa(pedidoValido({ metodo }), "campo metodo");
   }
 });
@@ -126,7 +127,8 @@ Deno.test("recusa corpo não textual", () => {
   assertRecusa(pedidoValido({ corpo: {} }), "campo corpo");
 });
 
-Deno.test("recusa corpo em GET e DELETE", () => {
-  assertRecusa(pedidoValido({ metodo: "GET", corpo: "{}" }), "GET e DELETE");
-  assertRecusa(pedidoValido({ metodo: "DELETE", corpo: "{}" }), "GET e DELETE");
+Deno.test("recusa corpo em GET, DELETE e OPTIONS", () => {
+  assertRecusa(pedidoValido({ metodo: "GET", corpo: "{}" }), "GET, DELETE e OPTIONS");
+  assertRecusa(pedidoValido({ metodo: "DELETE", corpo: "{}" }), "GET, DELETE e OPTIONS");
+  assertRecusa(pedidoValido({ metodo: "OPTIONS", corpo: "{}" }), "GET, DELETE e OPTIONS");
 });

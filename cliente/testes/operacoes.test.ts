@@ -212,13 +212,13 @@ describe("operações: repasse de erros", () => {
 });
 
 describe("operações: verificarServidor", () => {
-  it("envia GET /api/v1/sessions sem token e sem corpo", async () => {
-    const { operacoes, falso } = operacoesCom(405, '{"mensagem":"Método não permitido."}');
+  it("envia OPTIONS /api/v1/sessions sem token e sem corpo", async () => {
+    const { operacoes, falso } = operacoesCom(204, "");
     await operacoes.verificarServidor();
     expect(ultimoPedido(falso)).toEqual({
       ip: conexao.ip,
       porta: conexao.porta,
-      metodo: "GET",
+      metodo: "OPTIONS",
       caminho: "/api/v1/sessions",
       token: null,
       corpo: null,
