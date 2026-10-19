@@ -77,6 +77,8 @@ Criptografia (PBKDF2, números aleatórios, UUID), SQLite e Web Workers são rec
 
 1. **Extrair o arquivo compactado.** Extraia o `.zip` recebido em qualquer pasta do computador (por exemplo, a Área de Trabalho). Abra a pasta extraída: ela é a raiz do projeto e contém `iniciar-servidor.bat`, `iniciar-cliente.bat`, `servidor/`, `cliente/` e `protocolo/`.
 
+   O arquivo contém apenas o código-fonte. Não vêm nele (por serem gerados ou baixados): as dependências da interface (`cliente/node_modules/`), a interface compilada (`cliente/dist/`), o banco de dados e o segredo do JWT (`servidor/dados/`) e o cache de dependências do Deno. Nenhum desses itens precisa ser instalado ou criado à mão: os scripts de inicialização (passo 4) baixam, geram ou criam cada um deles automaticamente. A única instalação feita por você é a dos programas dos passos 2 e 3.
+
 2. **Instalar o Deno** (https://deno.com). No Windows, pelo PowerShell: `irm https://deno.land/install.ps1 | iex`, ou o instalador indicado no site.
 
 3. **Instalar o Node.js** (https://nodejs.org), versão 22.22.0 ou superior (a versão LTS atual atende). O npm vem junto. Feche e abra o terminal e confira:
@@ -572,11 +574,11 @@ Com o painel do servidor e o painel de mensagens do cliente abertos:
     └── testes/                  cenários adversos, colega simulado, concorrência e fluxo completo
 ```
 
-Gerados automaticamente na execução (por isso não estão no repositório):
+Itens que não vêm no arquivo compactado e são obtidos automaticamente pelos scripts de inicialização (seção 3, passo 4):
 
 | Arquivo ou pasta | Origem |
 |---|---|
-| `servidor/dados/ecommerce.db` (e `-wal`, `-shm`) | Banco de dados, criado na primeira vez que o servidor inicia. |
+| `servidor/dados/ecommerce.db` (e `-wal`, `-shm`) | Banco de dados, criado na primeira vez que o servidor é iniciado pelo painel (a pasta `servidor/dados/` já vem no arquivo). |
 | `servidor/dados/segredo-jwt.txt` | Segredo do JWT, gerado na primeira execução; sigiloso. |
 | `cliente/node_modules/` | Dependências da interface, instaladas por `npm ci`. |
 | `cliente/dist/` | Interface compilada, gerada por `npm run build`. |
