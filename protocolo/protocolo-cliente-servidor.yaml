@@ -1,14 +1,26 @@
 openapi: 3.0.3
 info:
-  title: Protocolo de Comunicação - Autenticação e Usuários
+  title: Protocolo de Comunicação - Autenticação, Usuários e Produtos
   description: |-
-    Modelo do protocolo REST/HTTP para autenticação (login/logout) e CRUD de usuários,
-    para uso no trabalho prático da disciplina.
+    Modelo do protocolo REST/HTTP para autenticação (login/logout), CRUD de usuários
+    (incluindo a administração de usuários por um ADM) e CRUD de produtos com
+    controle de estoque, para uso no trabalho prático da disciplina.
     Padroniza rotas, cabeçalhos, corpo de requisição (JSON) e respostas.
 
-    Regras gerais (autenticação, CORS, formato de erro, ordem de validação etc.)
-    e histórico de versões estão documentados no README do repositório.
-  version: 1.3.1
+    Regras gerais (autenticação, CORS, formato de erro, ordem de validação, papéis
+    de usuário etc.) e o versionamento estão documentados no README do repositório.
+    O histórico de cada versão fica no log de commits do GitHub.
+
+    Todo servidor possui o mesmo ADM padrão (nome "Admin", e-mail
+    "adm@teste.com", senha "admin123"), criado automaticamente na
+    inicialização se ainda não existir. Detalhes na seção "ADM padrão" do
+    README.
+
+    Valem para todas as rotas, mesmo sem aparecerem em cada resposta abaixo: os
+    cabeçalhos CORS (regra 5 do README, inclusive nas respostas de erro), o 404
+    para rota inexistente e o 405 para método não suportado (regra 15 do
+    README), ambos com corpo ErroResponse.
+  version: 1.5.0
 servers:
   - url: http://{ip}:{porta}/api/v1
     description: Servidor de qualquer aluno. IP e porta ficam a critério de quem usa o cliente; /api/v1 é fixo.
@@ -35,6 +47,9 @@ paths:
       responses:
         '201':
           description: Sessão criada com sucesso.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
           content:
             application/json:
               schema:
@@ -86,6 +101,8 @@ paths:
         "whitelist" de sessões ativas (ou incluindo-a em uma "blacklist").
         O id da URL deve pertencer ao dono do token enviado no header
         Authorization; caso contrário, a exclusão é negada.
+        Uma sessão que não existe também não pertence ao dono do token e dá
+        403 (regra 10).
         Após o logout, o token não deve dar acesso a nenhuma rota além de
         POST /sessions e POST /users.
       security:
@@ -100,13 +117,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErroResponse'
         '403':
-          description: O id da sessão não pertence ao dono do token enviado.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErroResponse'
-        '404':
-          description: Sessão não encontrada.
+          description: O id da sessão não pertence ao dono do token enviado, inclusive quando a sessão não existe (para qualquer usuário, ADM incluso). Esta rota nunca devolve 404.
           content:
             application/json:
               schema:
@@ -130,30 +141,37 @@ paths:
               $ref: '#/components/headers/AccessControlAllowHeaders'
 
   /users:
-    #esta função será usada nas funcionalidades de Admin, portanto, não é necessário para a primeira entrega;
-    # get:
-    #   summary: Listar todos os usuários
-    #   description: Retorna uma lista com todos os usuários cadastrados no sistema.
-    #   security:
-    #     - bearerAuth: []
-    #   parameters:
-    #     - name: nome
-    #       in: query
-    #       description: Filtrar usuários por nome
-    #       required: false
-    #       schema:
-    #         type: string
-    #   responses:
-    #     '200':
-    #       description: Lista recuperada com sucesso.
-    #       content:
-    #         application/json:
-    #           schema:
-    #             type: array
-    #             items:
-    #               $ref: '#/components/schemas/UserResponse'
-    #     '401':
-    #       description: Token ausente ou inválido.
+    get:
+      summary: Listar todos os usuários (ADM)
+      description: |-
+        Retorna todos os usuários cadastrados, incluindo o próprio ADM,
+        ordenados por id crescente. Sem paginação. Exclusivo de ADM:
+        usuário comum recebe 403.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista recuperada com sucesso (pode ser vazia).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O dono do token não é ADM.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
 
     post:
       summary: Criar um novo usuário
@@ -161,6 +179,11 @@ paths:
         Cadastra um novo usuário no sistema. Se o e-mail já existir no banco,
         o servidor deve responder 409 e o cliente deve orientar o usuário a
         fazer login em vez de se cadastrar novamente.
+        Sempre cria um usuário comum ("admin": false). Um campo "admin"
+        enviado no corpo é ignorado (regra 7). Nenhuma rota cria ADM: o ADM
+        padrão é criado pelo próprio servidor na inicialização (ver seção
+        "ADM padrão" do README). O e-mail do ADM padrão ("adm@teste.com")
+        também dá 409, como qualquer e-mail já cadastrado.
       security: []
       requestBody:
         required: true
@@ -171,6 +194,9 @@ paths:
       responses:
         '201':
           description: Usuário criado com sucesso.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
           content:
             application/json:
               schema:
@@ -192,7 +218,7 @@ paths:
 
     options:
       summary: Preflight CORS
-      description: Checagem automática do navegador antes de POST /users. Sem token, sem corpo.
+      description: Checagem automática do navegador antes de GET ou POST /users. Sem token, sem corpo.
       security: []
       responses:
         '204':
@@ -219,8 +245,8 @@ paths:
       summary: Buscar usuário por ID
       description: |-
         Retorna os dados do usuário identificado pelo id informado. O id da
-        URL deve pertencer ao dono do token enviado no header Authorization;
-        caso contrário, a consulta é negada.
+        URL deve pertencer ao dono do token enviado no header Authorization,
+        ou o dono do token deve ser ADM; caso contrário, a consulta é negada.
       security:
         - bearerAuth: []
       responses:
@@ -243,7 +269,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErroResponse'
         '403':
-          description: O id do usuário não pertence ao dono do token enviado.
+          description: O id do usuário não pertence ao dono do token enviado, e o dono do token não é ADM.
           content:
             application/json:
               schema:
@@ -262,9 +288,11 @@ paths:
       description: |-
         Atualiza todos os dados do usuário identificado pelo id informado. O
         id da URL deve pertencer ao dono do token enviado no header
-        Authorization; caso contrário, a atualização é negada.
+        Authorization, ou o dono do token deve ser ADM; caso contrário, a
+        atualização é negada.
         Exige nome, email e senha juntos — falta de qualquer um dá 400. Pra
         mudar só um campo, usar PATCH.
+        Não muda o papel do usuário: um campo "admin" no corpo é ignorado (regra 7).
       security:
         - bearerAuth: []
       requestBody:
@@ -293,7 +321,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErroResponse'
         '403':
-          description: O id do usuário não pertence ao dono do token enviado.
+          description: O id do usuário não pertence ao dono do token enviado, e o dono do token não é ADM.
           content:
             application/json:
               schema:
@@ -318,7 +346,10 @@ paths:
       description: |-
         Atualiza um ou mais campos do usuário identificado pelo id informado.
         O id da URL deve pertencer ao dono do token enviado no header
-        Authorization; caso contrário, a atualização é negada.
+        Authorization, ou o dono do token deve ser ADM; caso contrário, a
+        atualização é negada.
+        Não muda o papel do usuário: um campo "admin" no corpo é ignorado
+        (regra 7) e não conta para o mínimo de um campo.
       security:
         - bearerAuth: []
       requestBody:
@@ -347,7 +378,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErroResponse'
         '403':
-          description: O id do usuário não pertence ao dono do token enviado.
+          description: O id do usuário não pertence ao dono do token enviado, e o dono do token não é ADM.
           content:
             application/json:
               schema:
@@ -371,11 +402,13 @@ paths:
       summary: Remover usuário
       description: |-
         Exclui o usuário identificado pelo id informado. O id da URL deve
-        pertencer ao dono do token enviado no header Authorization; caso
-        contrário, a exclusão é negada.
+        pertencer ao dono do token enviado no header Authorization, ou o dono
+        do token deve ser ADM; caso contrário, a exclusão é negada.
         A exclusão derruba da whitelist todas as sessões desse usuário —
         depois disso, qualquer requisição com esses tokens dá 401. Confirmar
         com o usuário antes de chamar essa rota é responsabilidade do cliente.
+        Vale também para o ADM padrão, que não tem proteção especial (ver
+        seção "ADM padrão" do README).
       security:
         - bearerAuth: []
       responses:
@@ -394,7 +427,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErroResponse'
         '403':
-          description: O id do usuário não pertence ao dono do token enviado.
+          description: O id do usuário não pertence ao dono do token enviado, e o dono do token não é ADM.
           content:
             application/json:
               schema:
@@ -411,6 +444,284 @@ paths:
     options:
       summary: Preflight CORS
       description: Checagem automática do navegador antes de GET, PUT, PATCH ou DELETE /users/{id}. Sem token, sem corpo.
+      security: []
+      responses:
+        '204':
+          description: Preflight aceito.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+            Access-Control-Allow-Methods:
+              $ref: '#/components/headers/AccessControlAllowMethods'
+            Access-Control-Allow-Headers:
+              $ref: '#/components/headers/AccessControlAllowHeaders'
+
+  /products:
+    get:
+      summary: Listar todos os produtos
+      description: |-
+        Retorna todos os produtos cadastrados, com a quantidade em estoque,
+        ordenados por id crescente. Sem paginação. Liberado para qualquer
+        usuário autenticado (comum ou ADM).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista recuperada com sucesso (pode ser vazia).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    post:
+      summary: Cadastrar produto (ADM)
+      description: |-
+        Cadastra um novo produto com nome, descrição e quantidade em estoque.
+        Exclusivo de ADM. Nomes repetidos são permitidos: cada produto é
+        identificado pelo id.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+      responses:
+        '201':
+          description: Produto criado com sucesso.
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Corpo mal formatado, campo obrigatório ausente ou fora das restrições. Inclui campo com tipo errado ou valor null.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O dono do token não é ADM.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    options:
+      summary: Preflight CORS
+      description: Checagem automática do navegador antes de GET ou POST /products. Sem token, sem corpo.
+      security: []
+      responses:
+        '204':
+          description: Preflight aceito.
+          headers:
+            Access-Control-Allow-Origin:
+              $ref: '#/components/headers/AccessControlAllowOrigin'
+            Access-Control-Allow-Methods:
+              $ref: '#/components/headers/AccessControlAllowMethods'
+            Access-Control-Allow-Headers:
+              $ref: '#/components/headers/AccessControlAllowHeaders'
+
+  /products/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: Identificador único do produto
+        required: true
+        schema:
+          type: integer
+          example: 1
+
+    get:
+      summary: Buscar produto por ID (consulta de estoque)
+      description: |-
+        Retorna os detalhes do produto e a quantidade em estoque. Liberado
+        para qualquer usuário autenticado (comum ou ADM).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Produto encontrado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: O id informado na URL não é um número inteiro válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '404':
+          description: Produto não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    put:
+      summary: Atualizar produto (ADM)
+      description: |-
+        Atualiza todos os dados do produto. Exclusivo de ADM.
+        Exige nome, descricao e quantidade juntos — falta de qualquer um dá
+        400. Pra mudar só um campo (ex.: só o estoque), usar PATCH.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+      responses:
+        '200':
+          description: Produto atualizado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Corpo mal formatado, campo obrigatório ausente, ou id da URL inválido. Inclui campo com tipo errado ou valor null.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O dono do token não é ADM.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '404':
+          description: Produto não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    patch:
+      summary: Atualizar parcialmente produto (ADM)
+      description: |-
+        Atualiza um ou mais campos do produto. Exclusivo de ADM.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductPatchRequest'
+      responses:
+        '200':
+          description: Produto atualizado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: Corpo mal formatado, corpo vazio (sem nenhum campo), ou id da URL inválido. Inclui campo com tipo errado ou valor null.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O dono do token não é ADM.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '404':
+          description: Produto não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    delete:
+      summary: Remover produto (ADM)
+      description: |-
+        Remove o produto dos registros. Exclusivo de ADM. Confirmar com o
+        usuário antes de chamar essa rota é responsabilidade do cliente.
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Produto removido com sucesso, sem conteúdo de retorno.
+        '400':
+          description: O id informado na URL não é um número inteiro válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '401':
+          description: Token ausente ou inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '403':
+          description: O dono do token não é ADM.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '404':
+          description: Produto não encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErroResponse'
+        '500':
+          $ref: '#/components/responses/ErroInterno'
+
+    options:
+      summary: Preflight CORS
+      description: Checagem automática do navegador antes de GET, PUT, PATCH ou DELETE /products/{id}. Sem token, sem corpo.
       security: []
       responses:
         '204':
@@ -451,6 +762,10 @@ components:
       schema:
         type: string
         example: "Content-Type, Authorization"
+    Location:
+      description: Caminho do recurso criado, começando em /api/v1 e sem esquema nem host, no formato /api/v1/users/{id}, /api/v1/products/{id} ou /api/v1/sessions/{id}. Informativo, pois o cliente usa o id do corpo da resposta (regra 17 do README).
+      schema:
+        type: string
 
   responses:
     ErroInterno:
@@ -514,7 +829,7 @@ components:
 
     UserResponse:
       type: object
-      required: [id, nome, email]
+      required: [id, nome, email, admin]
       properties:
         id:
           type: integer
@@ -526,6 +841,54 @@ components:
           type: string
           format: email
           example: "aluno_joao@exemplo.com"
+        admin:
+          type: boolean
+          description: true se o usuário é ADM. Só leitura — não é alterado por nenhuma rota. Clientes decidem as telas de administração por este campo, nunca pelo e-mail nem pelo id.
+          example: false
+
+    ProductRequest:
+      type: object
+      required:
+        - nome
+        - descricao
+        - quantidade
+      properties:
+        nome:
+          $ref: '#/components/schemas/NomeProduto'
+        descricao:
+          $ref: '#/components/schemas/Descricao'
+        quantidade:
+          $ref: '#/components/schemas/Quantidade'
+
+    ProductPatchRequest:
+      type: object
+      minProperties: 1
+      description: Pelo menos um campo (nome, descricao ou quantidade). Só o que for enviado muda.
+      properties:
+        nome:
+          $ref: '#/components/schemas/NomeProduto'
+        descricao:
+          $ref: '#/components/schemas/Descricao'
+        quantidade:
+          $ref: '#/components/schemas/Quantidade'
+
+    ProductResponse:
+      type: object
+      required: [id, nome, descricao, quantidade]
+      properties:
+        id:
+          type: integer
+          example: 1
+        nome:
+          type: string
+          example: "Teclado mecânico"
+        descricao:
+          type: string
+          example: "Teclado ABNT2 com switch azul"
+        quantidade:
+          type: integer
+          description: Quantidade em estoque.
+          example: 15
 
     Email:
       type: string
@@ -555,6 +918,30 @@ components:
       maxLength: 50
       description: Entre 3 e 50 caracteres, já com trim (sem espaços nas pontas).
       example: "João da Silva"
+
+    NomeProduto:
+      type: string
+      minLength: 2
+      maxLength: 100
+      description: Entre 2 e 100 caracteres, já com trim (sem espaços nas pontas).
+      example: "Teclado mecânico"
+
+    Descricao:
+      type: string
+      maxLength: 500
+      description: |-
+        Detalhes do produto. Até 500 caracteres, já com trim. Pode ser
+        vazia ("") quando não houver detalhes, mas o campo precisa vir.
+      example: "Teclado ABNT2 com switch azul"
+
+    Quantidade:
+      type: integer
+      minimum: 0
+      maximum: 1000000
+      description: |-
+        Quantidade em estoque. Número inteiro JSON entre 0 e 1.000.000.
+        Decimal (ex.: 1.5), negativo ou texto (ex.: "10") dá 400.
+      example: 15
 
     ErroResponse:
       type: object
