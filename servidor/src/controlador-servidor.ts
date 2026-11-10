@@ -9,6 +9,7 @@ import {
   obterCaminhoBanco,
 } from "./banco/conexao.ts";
 import { executarMigracoes } from "./banco/migracoes.ts";
+import { garantirAdmPadrao } from "./modulos/usuarios/adm-padrao.ts";
 import {
   carregarOuGerarSegredoJwt,
   obterCaminhoSegredoJwt,
@@ -61,6 +62,10 @@ export class ControladorServidor extends EventTarget {
       const conexao = abrirConexao(this.caminhoBanco);
       try {
         executarMigracoes(conexao);
+        await garantirAdmPadrao(
+          conexao,
+          (nivel, mensagem) => this.registrarSistema(nivel, mensagem),
+        );
       } finally {
         fecharConexao(conexao);
       }

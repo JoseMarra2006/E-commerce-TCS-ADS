@@ -16,6 +16,7 @@ export interface DadosNovoUsuario {
   email: string;
   senhaHash: string;
   senhaSalt: string;
+  papel?: PapelUsuario;
 }
 
 export interface AlteracoesUsuario {

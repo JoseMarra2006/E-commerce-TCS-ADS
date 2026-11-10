@@ -55,13 +55,14 @@ export function criarUsuario(
   const agora = new Date().toISOString();
   const linha = conexao
     .prepare(
-      `INSERT INTO usuarios (nome, email, senha_hash, senha_salt, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?) RETURNING ${COLUNAS_USUARIO};`,
+      `INSERT INTO usuarios (nome, email, senha_hash, senha_salt, papel, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING ${COLUNAS_USUARIO};`,
     )
     .get(
       dados.nome,
       dados.email,
       dados.senhaHash,
       dados.senhaSalt,
+      dados.papel ?? "comum",
       agora,
       agora,
     );
@@ -82,6 +83,13 @@ export function buscarUsuarioPorId(
     .get(id);
 
   return linha === undefined ? null : converterLinhaUsuario(linha);
+}
+
+export function listarUsuarios(conexao: ConexaoBanco): UsuarioRegistro[] {
+  return conexao
+    .prepare(`SELECT ${COLUNAS_USUARIO} FROM usuarios ORDER BY id ASC;`)
+    .all()
+    .map((linha) => converterLinhaUsuario(linha));
 }
 
 export function buscarUsuarioPorEmail(

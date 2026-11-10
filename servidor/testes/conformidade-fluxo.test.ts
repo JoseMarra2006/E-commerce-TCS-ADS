@@ -444,9 +444,15 @@ Deno.test("campos desconhecidos são ignorados e id e papel não têm efeito", a
     const conexao = abrirConexao(servidor.caminhoBanco);
     try {
       const linhas = conexao
-        .prepare("SELECT id, papel FROM usuarios;")
-        .all() as { id: number; papel: string }[];
-      assertEquals(linhas, [{ id: usuario.id, papel: "comum" }]);
+        .prepare("SELECT id, email, papel FROM usuarios ORDER BY id;")
+        .all() as { id: number; email: string; papel: string }[];
+      assertEquals(
+        linhas.map((linha) => ({ ...linha })),
+        [
+          { id: 1, email: "adm@teste.com", papel: "administrador" },
+          { id: usuario.id, email: "ana@exemplo.com", papel: "comum" },
+        ],
+      );
     } finally {
       fecharConexao(conexao);
     }
