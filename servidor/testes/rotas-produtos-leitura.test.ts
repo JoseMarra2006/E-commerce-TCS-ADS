@@ -37,7 +37,7 @@ const MSG_NAO_ENCONTRADO = "Produto não encontrado.";
 const MSG_ID = "O id do produto na URL deve ser um número inteiro positivo.";
 const MSG_METODO = "Método não permitido nesta rota.";
 const ALLOW_PRODUTOS = "GET, HEAD, POST, OPTIONS";
-const ALLOW_PRODUTO = "GET, HEAD, OPTIONS";
+const ALLOW_PRODUTO = "GET, HEAD, PUT, PATCH, DELETE, OPTIONS";
 const IDS_INVALIDOS = ["abc", "0", "-1", "1.5", "12345678901234567890"];
 const VALIDO = { nome: "Ingresso VIP", descricao: "Setor A", quantidade: 10 };
 
