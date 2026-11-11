@@ -1,5 +1,6 @@
 import { Hono } from "@hono/hono";
 import { intermediarioCors } from "./intermediarios/cors.ts";
+import { registrarRotasProdutos } from "./modulos/produtos/rotas-produtos.ts";
 import { registrarRotasSessoes } from "./modulos/sessoes/rotas-sessoes.ts";
 import { registrarRotasUsuarios } from "./modulos/usuarios/rotas-usuarios.ts";
 import { MENSAGEM_ERRO_INTERNO } from "./utilitarios/respostas-erro.ts";
@@ -38,6 +39,7 @@ export function criarAplicacao(
 
   registrarRotasUsuarios(app);
   registrarRotasSessoes(app);
+  registrarRotasProdutos(app);
 
   app.onError((_erro, c) => {
     return c.json({ mensagem: MENSAGEM_ERRO_INTERNO }, 500, {

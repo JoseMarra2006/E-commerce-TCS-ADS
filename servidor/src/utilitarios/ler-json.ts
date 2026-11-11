@@ -7,6 +7,11 @@ export type ResultadoLeituraCampoTexto =
   | { ok: true; presente: true; valor: string }
   | { ok: false; mensagem: string };
 
+export type ResultadoLeituraCampoInteiro =
+  | { ok: true; presente: false }
+  | { ok: true; presente: true; valor: number }
+  | { ok: false; mensagem: string };
+
 function ehObjetoSimples(valor: unknown): valor is Record<string, unknown> {
   return typeof valor === "object" && valor !== null && !Array.isArray(valor);
 }
@@ -62,4 +67,34 @@ export function lerCampoTexto(
   }
 
   return { ok: true, presente: true, valor };
+}
+
+export function lerCampoInteiro(
+  dados: Record<string, unknown>,
+  campo: string,
+  obrigatorio: boolean,
+): ResultadoLeituraCampoInteiro {
+  const presente = Object.prototype.hasOwnProperty.call(dados, campo);
+
+  if (!presente) {
+    if (obrigatorio) {
+      return { ok: false, mensagem: `O campo ${campo} é obrigatório.` };
+    }
+    return { ok: true, presente: false };
+  }
+
+  const valor = dados[campo];
+
+  if (valor === null) {
+    return { ok: false, mensagem: `O campo ${campo} não pode ser nulo.` };
+  }
+
+  if (typeof valor !== "number" || !Number.isInteger(valor)) {
+    return {
+      ok: false,
+      mensagem: `O campo ${campo} deve ser um número inteiro.`,
+    };
+  }
+
+  return { ok: true, presente: true, valor: Object.is(valor, -0) ? 0 : valor };
 }

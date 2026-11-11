@@ -19,6 +19,17 @@ CREATE TABLE IF NOT EXISTS sessoes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessoes_usuario_id ON sessoes(usuario_id);
+
+CREATE TABLE IF NOT EXISTS produtos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome TEXT NOT NULL,
+  descricao TEXT NOT NULL,
+  quantidade INTEGER NOT NULL CHECK (
+    typeof(quantidade) = 'integer' AND quantidade BETWEEN 0 AND 1000000
+  ),
+  criado_em TEXT NOT NULL,
+  atualizado_em TEXT NOT NULL
+);
 `;
 
 export function executarMigracoes(conexao: ConexaoBanco): void {

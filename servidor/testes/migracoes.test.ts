@@ -56,6 +56,7 @@ Deno.test("executarMigracoes cria as tabelas e o indice", () => {
     const nomesEncontrados = nomes.map((linha) => linha.name);
     assert(nomesEncontrados.includes("usuarios"));
     assert(nomesEncontrados.includes("sessoes"));
+    assert(nomesEncontrados.includes("produtos"));
     assert(nomesEncontrados.includes("idx_sessoes_usuario_id"));
   });
 });

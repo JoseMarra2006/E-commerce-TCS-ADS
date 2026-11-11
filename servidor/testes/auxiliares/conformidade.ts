@@ -18,6 +18,13 @@ export interface CorpoUsuario {
   admin: boolean;
 }
 
+export interface CorpoProduto {
+  id: number;
+  nome: string;
+  descricao: string;
+  quantidade: number;
+}
+
 export interface CorpoSessao {
   id: string;
   token: string;
@@ -59,6 +66,53 @@ function verificarCorpoUsuario(corpo: unknown): CorpoUsuario {
   assert(typeof email === "string", "email deve ser texto");
   assert(typeof admin === "boolean", "admin deve ser booleano");
   return { id, nome, email, admin };
+}
+
+export function verificarCorpoProduto(corpo: unknown): CorpoProduto {
+  assert(ehObjeto(corpo), "o corpo de produto deve ser um objeto");
+  assertEquals(Object.keys(corpo), ["id", "nome", "descricao", "quantidade"]);
+  const { id, nome, descricao, quantidade } = corpo;
+  assert(
+    typeof id === "number" && Number.isInteger(id) && id > 0,
+    "id deve ser inteiro positivo",
+  );
+  assert(typeof nome === "string", "nome deve ser texto");
+  assert(typeof descricao === "string", "descricao deve ser texto");
+  assert(
+    typeof quantidade === "number" && Number.isInteger(quantidade) &&
+      quantidade >= 0 && quantidade <= 1000000,
+    "quantidade deve ser inteiro entre 0 e 1000000",
+  );
+  return { id, nome, descricao, quantidade };
+}
+
+export async function verificarRespostaProduto(
+  resposta: Response,
+  status: number,
+  esperado: Partial<CorpoProduto> = {},
+): Promise<RespostaLida<CorpoProduto>> {
+  assertEquals(resposta.status, status);
+  const lida = await lerJson(resposta);
+  const produto = verificarCorpoProduto(lida.corpo);
+  for (const chave of ["id", "nome", "descricao", "quantidade"] as const) {
+    if (esperado[chave] !== undefined) {
+      assertEquals(produto[chave], esperado[chave]);
+    }
+  }
+  return { texto: lida.texto, corpo: produto };
+}
+
+export async function verificarRespostaListaProdutos(
+  resposta: Response,
+): Promise<RespostaLida<CorpoProduto[]>> {
+  assertEquals(resposta.status, 200);
+  const lida = await lerJson(resposta);
+  assert(Array.isArray(lida.corpo), "a lista deve ser um array");
+  const produtos = lida.corpo.map(verificarCorpoProduto);
+  for (let i = 1; i < produtos.length; i++) {
+    assert(produtos[i - 1].id < produtos[i].id, "ids devem ser crescentes");
+  }
+  return { texto: lida.texto, corpo: produtos };
 }
 
 export async function verificarRespostaErro(

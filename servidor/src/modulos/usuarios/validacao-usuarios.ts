@@ -1,4 +1,5 @@
 import { lerCampoTexto, lerCorpoJson } from "../../utilitarios/ler-json.ts";
+import { interpretarIdInteiroPositivo } from "../../utilitarios/validar-id.ts";
 
 export type ResultadoValidacao<T> =
   | { ok: true; dados: T }
@@ -6,7 +7,6 @@ export type ResultadoValidacao<T> =
 
 const PADRAO_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PADRAO_SENHA = /^[a-zA-Z0-9]+$/;
-const PADRAO_ID_USUARIO = /^[0-9]+$/;
 
 export function validarEmail(valor: string): ResultadoValidacao<string> {
   const tamanho = Array.from(valor).length;
@@ -69,17 +69,13 @@ export function validarIdUsuario(texto: string): ResultadoValidacao<number> {
   const mensagemErro =
     "O id do usuário na URL deve ser um número inteiro positivo.";
 
-  if (!PADRAO_ID_USUARIO.test(texto)) {
+  const id = interpretarIdInteiroPositivo(texto);
+
+  if (id === undefined) {
     return { ok: false, mensagem: mensagemErro };
   }
 
-  const valorNumerico = Number(texto);
-
-  if (!Number.isSafeInteger(valorNumerico) || valorNumerico <= 0) {
-    return { ok: false, mensagem: mensagemErro };
-  }
-
-  return { ok: true, dados: valorNumerico };
+  return { ok: true, dados: id };
 }
 
 function obterCampoObrigatorio(
