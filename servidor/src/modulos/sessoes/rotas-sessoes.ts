@@ -2,7 +2,10 @@ import type { Hono } from "@hono/hono";
 import type { AmbienteAplicacao } from "../../aplicacao.ts";
 import { exigirAutenticacao } from "../../intermediarios/autenticacao.ts";
 import { registrarMetodosNaoPermitidos } from "../../intermediarios/metodo-nao-permitido.ts";
-import { verificarPosseSessao } from "../../intermediarios/posse.ts";
+import {
+  MENSAGEM_POSSE_SESSAO,
+  verificarPosseSessao,
+} from "../../intermediarios/posse.ts";
 import {
   CAMINHO_SESSAO,
   CAMINHO_SESSOES,
@@ -54,7 +57,7 @@ export function registrarRotasSessoes(app: Hono<AmbienteAplicacao>): void {
     }
 
     if (!encerrarSessao(c.get("conexao"), posse.sessao.id)) {
-      return criarRespostaErro(404, "Sessão não encontrada.");
+      return criarRespostaErro(403, MENSAGEM_POSSE_SESSAO);
     }
 
     return criarRespostaSemConteudo();

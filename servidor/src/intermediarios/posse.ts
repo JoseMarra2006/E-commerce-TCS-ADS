@@ -5,6 +5,9 @@ import type { SessaoRegistro } from "../modulos/sessoes/tipos-sessoes.ts";
 import { validarIdUsuario } from "../modulos/usuarios/validacao-usuarios.ts";
 import { criarRespostaErro } from "../utilitarios/respostas-erro.ts";
 
+export const MENSAGEM_POSSE_SESSAO =
+  "Você não tem permissão para encerrar esta sessão.";
+
 export type ResultadoPosseUsuario =
   | { ok: true; id: number }
   | { ok: false; resposta: Response };
@@ -48,10 +51,7 @@ export function verificarPosseSessao(
   if (sessao === null || sessao.usuarioId !== c.get("usuarioAutenticado").id) {
     return {
       ok: false,
-      resposta: criarRespostaErro(
-        403,
-        "Você não tem permissão para encerrar esta sessão.",
-      ),
+      resposta: criarRespostaErro(403, MENSAGEM_POSSE_SESSAO),
     };
   }
 

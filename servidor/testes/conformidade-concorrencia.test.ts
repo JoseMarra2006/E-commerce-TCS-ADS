@@ -187,33 +187,38 @@ Deno.test("30 leituras simultâneas com tokens válidos retornam 200", async () 
   });
 });
 
-Deno.test("dois logouts simultâneos da mesma sessão: um 204 e nenhum 500", async () => {
+Deno.test("dois logouts simultâneos da mesma sessão: um 204, nenhum 404 e nenhum 500", async () => {
   await comServidor(async (servidor) => {
-    const conta = await criarConta(servidor, "ana@exemplo.com");
-    const respostas = await Promise.all(
-      Array.from(
-        { length: 2 },
-        () =>
-          requisitar(servidor, "DELETE", `${API}/sessions/${conta.sessaoId}`, {
-            token: conta.token,
-          }),
-      ),
-    );
-    const status: number[] = [];
-    for (const resposta of respostas) {
-      status.push(resposta.status);
-      if (resposta.status === 204) {
-        await verificarRespostaVazia(resposta);
-      } else {
-        await verificarRespostaErro(resposta, resposta.status);
+    for (let rodada = 0; rodada < 5; rodada++) {
+      const conta = await criarConta(servidor, `ana${rodada}@exemplo.com`);
+      const respostas = await Promise.all(
+        Array.from(
+          { length: 2 },
+          () =>
+            requisitar(
+              servidor,
+              "DELETE",
+              `${API}/sessions/${conta.sessaoId}`,
+              { token: conta.token },
+            ),
+        ),
+      );
+      const status: number[] = [];
+      for (const resposta of respostas) {
+        status.push(resposta.status);
+        if (resposta.status === 204) {
+          await verificarRespostaVazia(resposta);
+        } else {
+          await verificarRespostaErro(resposta, resposta.status);
+        }
       }
+      assertEquals(status.filter((s) => s === 204).length, 1, `${status}`);
+      const outro = status.find((s) => s !== 204);
+      assert(
+        outro === 401 || outro === 403,
+        `rodada ${rodada}: status inesperado: ${outro}`,
+      );
     }
-    assertEquals(status.filter((s) => s === 204).length, 1);
-    const outro = status.find((s) => s !== 204);
-    assert(
-      outro === 401 || outro === 403 || outro === 404,
-      `status inesperado: ${outro}`,
-    );
   });
 });
 
