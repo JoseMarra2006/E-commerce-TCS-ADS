@@ -1,6 +1,7 @@
 import type { Hono } from "@hono/hono";
 import type { AmbienteAplicacao } from "../../aplicacao.ts";
 import { exigirAutenticacao } from "../../intermediarios/autenticacao.ts";
+import { exigirAdministrador } from "../../intermediarios/autorizacao-administrador.ts";
 import { registrarMetodosNaoPermitidos } from "../../intermediarios/metodo-nao-permitido.ts";
 import { verificarPosseUsuario } from "../../intermediarios/posse.ts";
 import {
@@ -18,6 +19,7 @@ import {
   atualizarDadosUsuario,
   cadastrarUsuario,
   excluirConta,
+  listarTodosUsuarios,
   obterUsuario,
 } from "./servico-usuarios.ts";
 import type { ResultadoAtualizacao } from "./servico-usuarios.ts";
@@ -29,6 +31,8 @@ import {
 const MENSAGEM_NAO_ENCONTRADO = "Usuário não encontrado.";
 const MENSAGEM_EMAIL_EM_USO =
   "Este e-mail já está sendo usado por outro usuário.";
+const MENSAGEM_LISTAGEM_RESTRITA =
+  "Apenas administradores podem listar os usuários.";
 
 function responderAtualizacao(resultado: ResultadoAtualizacao): Response {
   if (resultado.tipo === "email_duplicado") {
@@ -63,7 +67,17 @@ export function registrarRotasUsuarios(app: Hono<AmbienteAplicacao>): void {
     );
   });
 
-  registrarMetodosNaoPermitidos(app, CAMINHO_USUARIOS, ["POST"]);
+  app.get(
+    CAMINHO_USUARIOS,
+    exigirAutenticacao,
+    exigirAdministrador(MENSAGEM_LISTAGEM_RESTRITA),
+    (c) => {
+      const usuarios = listarTodosUsuarios(c.get("conexao"));
+      return criarRespostaJson(200, usuarios.map(paraRespostaUsuario));
+    },
+  );
+
+  registrarMetodosNaoPermitidos(app, CAMINHO_USUARIOS, ["GET", "POST"]);
 
   app.get(CAMINHO_USUARIO, exigirAutenticacao, (c) => {
     const posse = verificarPosseUsuario(c, c.req.param("id"));

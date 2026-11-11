@@ -4,7 +4,7 @@ const TIPO_JSON = "application/json; charset=utf-8";
 const PADRAO_UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const PADRAO_CHAVE_SENSIVEL =
-  /"(senha|senhaHash|senhaSalt|senha_hash|senha_salt|papel)"\s*:/;
+  /"(senha|senhaHash|senhaSalt|senha_hash|senha_salt|hash|salt|papel)"\s*:/;
 
 export interface RespostaLida<T> {
   texto: string;
@@ -15,6 +15,7 @@ export interface CorpoUsuario {
   id: number;
   nome: string;
   email: string;
+  admin: boolean;
 }
 
 export interface CorpoSessao {
@@ -48,15 +49,16 @@ function ehObjeto(valor: unknown): valor is Record<string, unknown> {
 
 function verificarCorpoUsuario(corpo: unknown): CorpoUsuario {
   assert(ehObjeto(corpo), "o corpo de usuário deve ser um objeto");
-  assertEquals(Object.keys(corpo), ["id", "nome", "email"]);
-  const { id, nome, email } = corpo;
+  assertEquals(Object.keys(corpo), ["id", "nome", "email", "admin"]);
+  const { id, nome, email, admin } = corpo;
   assert(
     typeof id === "number" && Number.isInteger(id) && id > 0,
     "id deve ser inteiro positivo",
   );
   assert(typeof nome === "string", "nome deve ser texto");
   assert(typeof email === "string", "email deve ser texto");
-  return { id, nome, email };
+  assert(typeof admin === "boolean", "admin deve ser booleano");
+  return { id, nome, email, admin };
 }
 
 export async function verificarRespostaErro(
@@ -95,6 +97,9 @@ export async function verificarRespostaUsuario(
   }
   if (esperado.email !== undefined) {
     assertEquals(usuario.email, esperado.email);
+  }
+  if (esperado.admin !== undefined) {
+    assertEquals(usuario.admin, esperado.admin);
   }
   return { texto: lida.texto, corpo: usuario };
 }

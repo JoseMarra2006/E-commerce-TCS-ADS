@@ -104,8 +104,9 @@ Deno.test("POST /users com corpo válido retorna 201 no formato do protocolo", a
       id: corpo.id,
       nome: "Ana Souza",
       email: "ana@exemplo.com",
+      admin: false,
     });
-    assertEquals(Object.keys(corpo), ["id", "nome", "email"]);
+    assertEquals(Object.keys(corpo), ["id", "nome", "email", "admin"]);
     assertEquals(resposta.headers.get("Location"), `/api/v1/users/${corpo.id}`);
     assertEquals(texto.includes("senha123"), false);
     semChavesSensiveis(texto);
@@ -138,7 +139,8 @@ Deno.test("campos extras são ignorados", async () => {
     assertEquals(resposta.status, 201);
     const corpo = await resposta.json();
     assertEquals(corpo.id === 999, false);
-    assertEquals(Object.keys(corpo), ["id", "nome", "email"]);
+    assertEquals(Object.keys(corpo), ["id", "nome", "email", "admin"]);
+    assertEquals(corpo.admin, false);
     const linha = conexao
       .prepare("SELECT papel FROM usuarios;")
       .get() as { papel: string };
@@ -250,12 +252,12 @@ Deno.test("tolera charset, ausência de Content-Type e barra final", async () =>
   });
 });
 
-Deno.test("métodos diferentes de POST retornam 405 com Allow", async () => {
+Deno.test("PUT, PATCH e DELETE em /users retornam 405 com Allow", async () => {
   await comApp(async (app) => {
-    for (const metodo of ["GET", "PUT", "PATCH", "DELETE"]) {
+    for (const metodo of ["PUT", "PATCH", "DELETE"]) {
       const resposta = await app.request("/api/v1/users", { method: metodo });
       assertEquals(resposta.status, 405);
-      assertEquals(resposta.headers.get("Allow"), "POST, OPTIONS");
+      assertEquals(resposta.headers.get("Allow"), "GET, HEAD, POST, OPTIONS");
       conferirCors(resposta.headers);
       assertEquals(await resposta.json(), {
         mensagem: "Método não permitido nesta rota.",

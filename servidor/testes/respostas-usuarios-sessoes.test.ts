@@ -21,14 +21,26 @@ const sessao: SessaoRegistro = {
   criadoEm: "2026-01-03T00:00:00.000Z",
 };
 
-Deno.test("paraRespostaUsuario retorna exatamente id, nome e email", () => {
+Deno.test("paraRespostaUsuario retorna exatamente id, nome, email e admin", () => {
   const resposta = paraRespostaUsuario(usuario);
   assertEquals(resposta, {
     id: 3,
     nome: "Maria Silva",
     email: "maria@exemplo.com",
+    admin: true,
   });
-  assertEquals(Object.keys(resposta), ["id", "nome", "email"]);
+  assertEquals(Object.keys(resposta), ["id", "nome", "email", "admin"]);
+});
+
+Deno.test("paraRespostaUsuario devolve admin false para papel comum", () => {
+  const resposta = paraRespostaUsuario({ ...usuario, papel: "comum" });
+  assertEquals(resposta, {
+    id: 3,
+    nome: "Maria Silva",
+    email: "maria@exemplo.com",
+    admin: false,
+  });
+  assertEquals(typeof resposta.admin, "boolean");
 });
 
 Deno.test("paraRespostaUsuario não vaza campos internos", () => {
@@ -38,15 +50,28 @@ Deno.test("paraRespostaUsuario não vaza campos internos", () => {
   }
 });
 
+Deno.test("paraRespostaSessao herda admin false de usuário comum", () => {
+  const resposta = paraRespostaSessao(sessao, "token-jwt", {
+    ...usuario,
+    papel: "comum",
+  });
+  assertEquals(resposta.usuario.admin, false);
+});
+
 Deno.test("paraRespostaSessao retorna exatamente id, token e usuario", () => {
   const resposta = paraRespostaSessao(sessao, "token-jwt", usuario);
   assertEquals(resposta, {
     id: sessao.id,
     token: "token-jwt",
-    usuario: { id: 3, nome: "Maria Silva", email: "maria@exemplo.com" },
+    usuario: {
+      id: 3,
+      nome: "Maria Silva",
+      email: "maria@exemplo.com",
+      admin: true,
+    },
   });
   assertEquals(Object.keys(resposta), ["id", "token", "usuario"]);
-  assertEquals(Object.keys(resposta.usuario), ["id", "nome", "email"]);
+  assertEquals(Object.keys(resposta.usuario), ["id", "nome", "email", "admin"]);
   const json = JSON.stringify(resposta).toLowerCase();
   for (const proibido of ["senha", "salt", "papel"]) {
     assertEquals(json.includes(proibido), false);

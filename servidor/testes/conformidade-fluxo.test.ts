@@ -21,7 +21,8 @@ const MSG_TOKEN_INVALIDO =
   "Token de acesso inválido ou sessão encerrada. Faça login novamente.";
 const MSG_METODO = "Método não permitido nesta rota.";
 const MSG_NAO_ENCONTRADA = "Rota não encontrada.";
-const ALLOW_USUARIOS_SESSOES = "POST, OPTIONS";
+const ALLOW_USUARIOS = "GET, HEAD, POST, OPTIONS";
+const ALLOW_SESSOES = "POST, OPTIONS";
 const ALLOW_USUARIO_ID = "GET, HEAD, PUT, PATCH, DELETE, OPTIONS";
 const ALLOW_SESSAO_ID = "DELETE, OPTIONS";
 
@@ -83,6 +84,7 @@ Deno.test("fluxo completo da EP-1 por HTTP real", async () => {
     const a = await verificarRespostaUsuario(cadastro, 201, {
       nome: "Ana Souza",
       email: "ana@exemplo.com",
+      admin: false,
     });
     textos.push(a.texto);
     assertEquals(
@@ -100,6 +102,7 @@ Deno.test("fluxo completo da EP-1 por HTTP real", async () => {
       id,
       nome: "Ana Souza",
       email: "ana@exemplo.com",
+      admin: false,
     });
     const token1 = sessao1.corpo.token;
 
@@ -108,7 +111,7 @@ Deno.test("fluxo completo da EP-1 por HTTP real", async () => {
         token: token1,
       }),
       200,
-      { id, nome: "Ana Souza", email: "ana@exemplo.com" },
+      { id, nome: "Ana Souza", email: "ana@exemplo.com", admin: false },
     );
     textos.push(leitura.texto);
 
@@ -118,7 +121,7 @@ Deno.test("fluxo completo da EP-1 por HTTP real", async () => {
         corpo: { nome: "Ana Maria" },
       }),
       200,
-      { id, nome: "Ana Maria", email: "ana@exemplo.com" },
+      { id, nome: "Ana Maria", email: "ana@exemplo.com", admin: false },
     );
     textos.push(patch.texto);
 
@@ -132,7 +135,7 @@ Deno.test("fluxo completo da EP-1 por HTTP real", async () => {
         },
       }),
       200,
-      { id, nome: "Ana Maria Souza", email: "ana@exemplo.com" },
+      { id, nome: "Ana Maria Souza", email: "ana@exemplo.com", admin: false },
     );
     textos.push(put.texto);
 
@@ -217,8 +220,8 @@ Deno.test("matriz de 405 com Allow exato, com e sem token", async () => {
   await comServidor(async (servidor) => {
     const conta = await criarConta(servidor, "ana@exemplo.com");
     const matriz: [string, string[], string][] = [
-      ["/users", ["GET", "PUT", "PATCH", "DELETE"], ALLOW_USUARIOS_SESSOES],
-      ["/sessions", ["GET", "PUT", "PATCH", "DELETE"], ALLOW_USUARIOS_SESSOES],
+      ["/users", ["PUT", "PATCH", "DELETE"], ALLOW_USUARIOS],
+      ["/sessions", ["GET", "PUT", "PATCH", "DELETE"], ALLOW_SESSOES],
       ["/users/1", ["POST"], ALLOW_USUARIO_ID],
       [
         "/sessions/qualquer-id",
@@ -397,25 +400,29 @@ Deno.test("Content-Type com charset, ausente ou text/plain é aceito", async () 
   });
 });
 
-Deno.test("campos desconhecidos são ignorados e id e papel não têm efeito", async () => {
+Deno.test("campos desconhecidos são ignorados e id, papel e admin não têm efeito", async () => {
   await comServidor(async (servidor) => {
     const cadastro = await requisitar(servidor, "POST", `${API}/users`, {
       corpo: {
         id: 999,
         papel: "administrador",
+        admin: true,
         extra: { a: 1 },
         nome: "Ana Souza",
         email: "ana@exemplo.com",
         senha: "senha123",
       },
     });
-    const { corpo: usuario } = await verificarRespostaUsuario(cadastro, 201);
+    const { corpo: usuario } = await verificarRespostaUsuario(cadastro, 201, {
+      admin: false,
+    });
     assertNotEquals(usuario.id, 999);
 
     const login = await requisitar(servidor, "POST", `${API}/sessions`, {
       corpo: { email: "ana@exemplo.com", senha: "senha123", nome: "Outro" },
     });
     const sessao = await verificarRespostaSessao(login);
+    assertEquals(sessao.corpo.usuario.admin, false);
     const token = sessao.corpo.token;
 
     await verificarRespostaUsuario(
@@ -424,21 +431,27 @@ Deno.test("campos desconhecidos são ignorados e id e papel não têm efeito", a
         corpo: {
           id: 999,
           papel: "administrador",
+          admin: true,
           nome: "Ana Souza",
           email: "ana@exemplo.com",
           senha: "senha123",
         },
       }),
       200,
-      { id: usuario.id },
+      { id: usuario.id, admin: false },
     );
     await verificarRespostaUsuario(
       await requisitar(servidor, "PATCH", `${API}/users/${usuario.id}`, {
         token,
-        corpo: { id: 999, papel: "administrador", nome: "Ana Patch" },
+        corpo: {
+          id: 999,
+          papel: "administrador",
+          admin: true,
+          nome: "Ana Patch",
+        },
       }),
       200,
-      { id: usuario.id, nome: "Ana Patch" },
+      { id: usuario.id, nome: "Ana Patch", admin: false },
     );
 
     const conexao = abrirConexao(servidor.caminhoBanco);

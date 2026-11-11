@@ -22,7 +22,11 @@ export function verificarPosseUsuario(
     return { ok: false, resposta: criarRespostaErro(400, validacao.mensagem) };
   }
 
-  if (validacao.dados !== c.get("usuarioAutenticado").id) {
+  const autenticado = c.get("usuarioAutenticado");
+  const ehDono = validacao.dados === autenticado.id;
+  const ehAdministrador = autenticado.papel === "administrador";
+
+  if (!ehDono && !ehAdministrador) {
     return {
       ok: false,
       resposta: criarRespostaErro(

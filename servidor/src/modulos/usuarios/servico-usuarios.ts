@@ -8,6 +8,7 @@ import {
   criarUsuario,
   emailPertenceAOutroUsuario,
   excluirUsuario,
+  listarUsuarios,
 } from "./repositorio-usuarios.ts";
 import type { AlteracoesUsuario, UsuarioRegistro } from "./tipos-usuarios.ts";
 
@@ -51,6 +52,10 @@ export function obterUsuario(
   id: number,
 ): UsuarioRegistro | null {
   return buscarUsuarioPorId(conexao, id);
+}
+
+export function listarTodosUsuarios(conexao: ConexaoBanco): UsuarioRegistro[] {
+  return listarUsuarios(conexao);
 }
 
 export async function atualizarDadosUsuario(

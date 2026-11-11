@@ -165,7 +165,7 @@ async function conferirErro(
 
 async function conferirUsuario(
   resposta: Response,
-  esperado: { id: number; nome: string; email: string },
+  esperado: { id: number; nome: string; email: string; admin: boolean },
 ) {
   assertEquals(resposta.status, 200);
   assertEquals(resposta.headers.get("Content-Type"), JSON_CT);
@@ -192,6 +192,7 @@ Deno.test("GET /users/{id} com o token do dono retorna 200", async () => {
       id: a.id,
       nome: "Ana Souza",
       email: "ana@exemplo.com",
+      admin: false,
     });
   });
 });
@@ -222,6 +223,7 @@ Deno.test("PUT com três campos válidos atualiza e troca a senha", async () => 
       id: a.id,
       nome: "Ana Maria",
       email: "maria@exemplo.com",
+      admin: false,
     });
     assertEquals(
       (await login(app, "maria@exemplo.com", "novaSenha1")).status,
@@ -283,11 +285,12 @@ Deno.test("PUT com o próprio e-mail em outra capitalização retorna 200", asyn
       id: a.id,
       nome: "Ana Souza",
       email: "ANA@Exemplo.com",
+      admin: false,
     });
   });
 });
 
-Deno.test("PUT ignora campos extras como id e papel", async () => {
+Deno.test("PUT ignora campos extras como id, papel e admin", async () => {
   await comApp(async (app, conexao) => {
     const [a] = await duasContas(app);
     const resposta = await enviar(app, "PUT", caminho(a.id), {
@@ -295,6 +298,7 @@ Deno.test("PUT ignora campos extras como id e papel", async () => {
       corpo: {
         id: 999,
         papel: "administrador",
+        admin: true,
         nome: "Ana Souza",
         email: "ana@exemplo.com",
         senha: "senha123",
@@ -304,6 +308,7 @@ Deno.test("PUT ignora campos extras como id e papel", async () => {
       id: a.id,
       nome: "Ana Souza",
       email: "ana@exemplo.com",
+      admin: false,
     });
     const linha = conexao
       .prepare("SELECT papel FROM usuarios WHERE id = ?;")
@@ -323,6 +328,7 @@ Deno.test("PATCH só do nome mantém e-mail e senha", async () => {
       id: a.id,
       nome: "Ana Maria",
       email: "ana@exemplo.com",
+      admin: false,
     });
     assertEquals((await login(app, "ana@exemplo.com", "senha123")).status, 201);
   });
@@ -356,6 +362,7 @@ Deno.test("PATCH só do e-mail troca o e-mail", async () => {
       id: a.id,
       nome: "Ana Souza",
       email: "novo@exemplo.com",
+      admin: false,
     });
     assertEquals(
       (await login(app, "novo@exemplo.com", "senha123")).status,

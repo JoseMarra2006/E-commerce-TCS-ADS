@@ -156,8 +156,9 @@ Deno.test("POST /sessions com credenciais corretas retorna 201 no formato do pro
       id: usuario.id,
       nome: "Ana Souza",
       email: "ana@exemplo.com",
+      admin: false,
     });
-    assertEquals(Object.keys(corpo.usuario), ["id", "nome", "email"]);
+    assertEquals(Object.keys(corpo.usuario), ["id", "nome", "email", "admin"]);
     assert(PADRAO_UUID.test(corpo.id));
     assertEquals(corpo.token.split(".").length, 3);
     assertEquals(
