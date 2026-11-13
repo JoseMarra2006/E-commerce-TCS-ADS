@@ -71,6 +71,12 @@ export async function criarAplicacaoPainel(
   const conteudoJs = await Deno.readTextFile(
     new URL("./painel.js", diretorioPublico),
   );
+  const conteudoLogadosVisao = await Deno.readTextFile(
+    new URL("./logados-visao.js", diretorioPublico),
+  );
+  const conteudoLogadosCartao = await Deno.readTextFile(
+    new URL("./logados-cartao.js", diretorioPublico),
+  );
   const conteudoIcone = await Deno.readTextFile(
     new URL("./favicon.svg", diretorioPublico),
   );
@@ -151,6 +157,18 @@ export async function criarAplicacaoPainel(
 
   app.get("/painel.js", () => {
     return new Response(conteudoJs, {
+      headers: { "Content-Type": "text/javascript; charset=utf-8" },
+    });
+  });
+
+  app.get("/logados-visao.js", () => {
+    return new Response(conteudoLogadosVisao, {
+      headers: { "Content-Type": "text/javascript; charset=utf-8" },
+    });
+  });
+
+  app.get("/logados-cartao.js", () => {
+    return new Response(conteudoLogadosCartao, {
       headers: { "Content-Type": "text/javascript; charset=utf-8" },
     });
   });

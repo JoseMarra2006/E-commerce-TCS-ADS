@@ -1,3 +1,5 @@
+import { criarCartaoLogados } from "./logados-cartao.js";
+
 const token = document.querySelector('meta[name="token-painel"]').content;
 
 const elementoAvisoConexao = document.getElementById("aviso-conexao");
@@ -17,6 +19,14 @@ const elementoGradeThreads = document.getElementById("grade-threads");
 const elementoListaMensagens = document.getElementById("lista-mensagens");
 const elementoBotaoLimpar = document.getElementById("botao-limpar");
 const elementoBotaoEncerrar = document.getElementById("botao-encerrar");
+
+const cartaoLogados = criarCartaoLogados(document, {
+  contador: document.getElementById("contador-logados"),
+  mensagem: document.getElementById("mensagem-logados"),
+  aviso: document.getElementById("aviso-logados"),
+  areaTabela: document.getElementById("area-tabela-logados"),
+  corpo: document.getElementById("corpo-logados"),
+});
 
 const ROTULOS_STATUS = {
   parada: "Parada",
@@ -321,7 +331,15 @@ function conectarEventos() {
 
   origem.addEventListener("estado", (evento) => {
     elementoAvisoConexao.hidden = true;
-    renderizarEstado(JSON.parse(evento.data));
+    cartaoLogados.definirConexao(true);
+    const estado = JSON.parse(evento.data);
+    cartaoLogados.definirStatusServidor(estado?.status);
+    renderizarEstado(estado);
+  });
+
+  origem.addEventListener("logados", (evento) => {
+    elementoAvisoConexao.hidden = true;
+    cartaoLogados.receberEvento(evento.data);
   });
 
   origem.addEventListener("registro", (evento) => {
@@ -331,10 +349,12 @@ function conectarEventos() {
 
   origem.addEventListener("ping", () => {
     elementoAvisoConexao.hidden = true;
+    cartaoLogados.definirConexao(true);
   });
 
   origem.addEventListener("error", () => {
     elementoAvisoConexao.hidden = false;
+    cartaoLogados.definirConexao(false);
   });
 }
 

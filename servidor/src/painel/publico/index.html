@@ -63,6 +63,37 @@
         <div class="grade-threads" id="grade-threads"></div>
       </section>
 
+      <section class="cartao cartao-largo" id="cartao-logados"
+        aria-labelledby="titulo-logados">
+        <div class="cabecalho-cartao">
+          <h2 id="titulo-logados">Usuários logados</h2>
+          <p class="contador-logados" id="contador-logados"
+            aria-live="polite">Nenhum usuário logado</p>
+        </div>
+        <div class="estado-logados" id="estado-logados" aria-live="polite">
+          <p class="mensagem-logados"
+            id="mensagem-logados">Servidor parado. Inicie o servidor para ver os usuários logados.</p>
+          <p class="aviso-logados" id="aviso-logados" hidden></p>
+        </div>
+        <div class="area-tabela-logados" id="area-tabela-logados"
+          role="region" aria-labelledby="legenda-logados" tabindex="0" hidden>
+          <table class="tabela-logados">
+            <caption
+              id="legenda-logados">Usuários com sessão ativa no servidor</caption>
+            <thead>
+              <tr>
+                <th scope="col">Nome</th>
+                <th scope="col">E-mail</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Sessões</th>
+                <th scope="col">Logado desde</th>
+              </tr>
+            </thead>
+            <tbody id="corpo-logados"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="cartao cartao-largo" id="cartao-mensagens">
         <h2>Mensagens</h2>
         <button type="button" id="botao-limpar">Limpar exibição</button>
