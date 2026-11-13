@@ -9,6 +9,12 @@ const TEMPO_LIMITE_ENCERRAMENTO_THREAD_MS = 2000;
 const MAXIMO_TENTATIVAS_SUBSTITUICAO = 3;
 const INTERVALO_RETENTATIVA_SUBSTITUICAO_MS = 2000;
 
+export const EVENTO_SESSOES_ALTERADAS = "sessoes_alteradas";
+
+export interface OpcoesGerenciadorPool {
+  urlTrabalhador?: string;
+}
+
 export interface EstadoThread {
   numero: number;
   pronta: boolean;
@@ -80,6 +86,7 @@ export function ehResultadoDeSucesso(
 
 export class GerenciadorPool extends EventTarget {
   private readonly quantidadeThreads: number;
+  private readonly urlTrabalhador: string;
   private readonly threads = new Map<number, InfoThread>();
   private readonly pendentes = new Map<number, Pendencia>();
   private readonly filaEspera: ItemFila[] = [];
@@ -99,8 +106,10 @@ export class GerenciadorPool extends EventTarget {
   private caminhoBanco = "";
   private segredoJwt = "";
 
-  constructor() {
+  constructor(opcoes: OpcoesGerenciadorPool = {}) {
     super();
+    this.urlTrabalhador = opcoes.urlTrabalhador ??
+      new URL("./trabalhador.ts", import.meta.url).href;
     const nucleos = navigator.hardwareConcurrency || QUANTIDADE_MINIMA_THREADS;
     this.quantidadeThreads = Math.min(
       QUANTIDADE_MAXIMA_THREADS,
@@ -239,10 +248,7 @@ export class GerenciadorPool extends EventTarget {
 
   private criarThread(numero: number): Promise<ResultadoInicializacaoThread> {
     return new Promise((resolve) => {
-      const worker = new Worker(
-        new URL("./trabalhador.ts", import.meta.url).href,
-        { type: "module" },
-      );
+      const worker = new Worker(this.urlTrabalhador, { type: "module" });
 
       const info: InfoThread = {
         numero,
@@ -253,7 +259,7 @@ export class GerenciadorPool extends EventTarget {
       this.threads.set(numero, info);
 
       worker.onmessage = (evento: MessageEvent<unknown>) => {
-        this.tratarMensagemThread(numero, evento.data);
+        this.tratarMensagemThread(numero, worker, evento.data);
       };
 
       worker.onerror = (evento: ErrorEvent) => {
@@ -284,8 +290,17 @@ export class GerenciadorPool extends EventTarget {
     });
   }
 
-  private tratarMensagemThread(numero: number, dado: unknown): void {
+  private tratarMensagemThread(
+    numero: number,
+    worker: Worker,
+    dado: unknown,
+  ): void {
     if (!ehMensagemDaThread(dado)) {
+      return;
+    }
+
+    if (dado.tipo === "sessoes_alteradas") {
+      this.tratarSessoesAlteradas(numero, worker);
       return;
     }
 
@@ -328,6 +343,14 @@ export class GerenciadorPool extends EventTarget {
         resolvedor();
       }
     }
+  }
+
+  private tratarSessoesAlteradas(numero: number, worker: Worker): void {
+    if (this.encerrando || this.threads.get(numero)?.worker !== worker) {
+      return;
+    }
+
+    this.dispatchEvent(new Event(EVENTO_SESSOES_ALTERADAS));
   }
 
   private tratarResposta(

@@ -1,4 +1,13 @@
-import { GerenciadorPool } from "./pool/gerenciador-pool.ts";
+import {
+  EVENTO_SESSOES_ALTERADAS,
+  GerenciadorPool,
+} from "./pool/gerenciador-pool.ts";
+import {
+  criarInstantaneoIndisponivel,
+  type InstantaneoLogados,
+  MonitorUsuariosLogados,
+  type OpcoesMonitorUsuariosLogados,
+} from "./logados/monitor-usuarios-logados.ts";
 import { iniciarRecepcao, type Recepcao } from "./recepcao.ts";
 import { obterEnderecosAcesso } from "./utilitarios/rede.ts";
 import type { EstadoServidor, Registro, StatusServidor } from "./estado.ts";
@@ -18,6 +27,8 @@ import type { ResultadoSegredoJwt } from "./utilitarios/segredo-jwt.ts";
 
 const LIMITE_REGISTROS = 500;
 
+export const EVENTO_LOGADOS = "logados";
+
 export interface ResultadoOperacao {
   ok: boolean;
   mensagem: string;
@@ -26,6 +37,9 @@ export interface ResultadoOperacao {
 export interface OpcoesControladorServidor {
   caminhoBanco?: string;
   caminhoSegredoJwt?: string;
+  criarMonitorLogados?: (
+    opcoes: OpcoesMonitorUsuariosLogados,
+  ) => MonitorUsuariosLogados;
 }
 
 export class ControladorServidor extends EventTarget {
@@ -35,6 +49,11 @@ export class ControladorServidor extends EventTarget {
   private enderecos: string[] = [];
   private pool: GerenciadorPool | null = null;
   private recepcao: Recepcao | null = null;
+  private monitorLogados: MonitorUsuariosLogados | null = null;
+  private ouvinteSessoesAlteradas: (() => void) | null = null;
+  private readonly criarMonitorLogados: (
+    opcoes: OpcoesMonitorUsuariosLogados,
+  ) => MonitorUsuariosLogados;
   private readonly registros: Registro[] = [];
   private readonly caminhoBanco: string;
   private readonly caminhoSegredoJwt: string;
@@ -44,6 +63,8 @@ export class ControladorServidor extends EventTarget {
     this.caminhoBanco = opcoes.caminhoBanco ?? obterCaminhoBanco();
     this.caminhoSegredoJwt = opcoes.caminhoSegredoJwt ??
       obterCaminhoSegredoJwt();
+    this.criarMonitorLogados = opcoes.criarMonitorLogados ??
+      ((opcoesMonitor) => new MonitorUsuariosLogados(opcoesMonitor));
   }
 
   async iniciar(porta: number): Promise<ResultadoOperacao> {
@@ -120,6 +141,8 @@ export class ControladorServidor extends EventTarget {
       return { ok: false, mensagem };
     }
 
+    this.iniciarMonitorLogados(pool);
+
     try {
       this.recepcao = iniciarRecepcao({
         porta,
@@ -127,6 +150,7 @@ export class ControladorServidor extends EventTarget {
         registrar: (registro) => this.adicionarRegistro(registro),
       });
     } catch (erro: unknown) {
+      this.pararMonitorLogados(pool);
       await pool.encerrar();
       this.pool = null;
       const mensagem = this.mensagemDeErroRecepcao(erro, porta);
@@ -160,6 +184,7 @@ export class ControladorServidor extends EventTarget {
     }
 
     if (this.pool) {
+      this.pararMonitorLogados(this.pool);
       await this.pool.encerrar();
       this.pool = null;
     }
@@ -182,6 +207,18 @@ export class ControladorServidor extends EventTarget {
     };
   }
 
+  obterUsuariosLogados(): InstantaneoLogados {
+    if (this.monitorLogados === null) {
+      return criarInstantaneoIndisponivel();
+    }
+
+    try {
+      return this.monitorLogados.obterInstantaneo();
+    } catch {
+      return criarInstantaneoIndisponivel();
+    }
+  }
+
   obterRegistros(): Registro[] {
     return [...this.registros];
   }
@@ -190,6 +227,67 @@ export class ControladorServidor extends EventTarget {
     if (this.pool) {
       await this.pool.substituirThread(numero);
     }
+  }
+
+  private iniciarMonitorLogados(pool: GerenciadorPool): void {
+    try {
+      const monitor = this.criarMonitorLogados({
+        caminhoBanco: this.caminhoBanco,
+        registrar: (nivel, mensagem) => this.registrarSistema(nivel, mensagem),
+        aoMudar: (instantaneo) => this.emitirLogados(instantaneo),
+      });
+      this.monitorLogados = monitor;
+
+      const ouvinte = () => {
+        try {
+          monitor.solicitarAtualizacao();
+        } catch {
+          return;
+        }
+      };
+      this.ouvinteSessoesAlteradas = ouvinte;
+      pool.addEventListener(EVENTO_SESSOES_ALTERADAS, ouvinte);
+
+      monitor.iniciar();
+    } catch {
+      this.registrarSistema(
+        "erro",
+        "Não foi possível iniciar o monitor de usuários logados. O servidor continua atendendo normalmente.",
+      );
+    }
+  }
+
+  private pararMonitorLogados(pool: GerenciadorPool): void {
+    if (this.ouvinteSessoesAlteradas !== null) {
+      pool.removeEventListener(
+        EVENTO_SESSOES_ALTERADAS,
+        this.ouvinteSessoesAlteradas,
+      );
+      this.ouvinteSessoesAlteradas = null;
+    }
+
+    const monitor = this.monitorLogados;
+    this.monitorLogados = null;
+    if (monitor !== null) {
+      try {
+        monitor.parar();
+      } catch {
+        this.registrarSistema(
+          "erro",
+          "Não foi possível parar o monitor de usuários logados.",
+        );
+      }
+    }
+
+    this.emitirLogados(criarInstantaneoIndisponivel());
+  }
+
+  private emitirLogados(instantaneo: InstantaneoLogados): void {
+    this.dispatchEvent(
+      new CustomEvent<InstantaneoLogados>(EVENTO_LOGADOS, {
+        detail: instantaneo,
+      }),
+    );
   }
 
   private definirStatus(status: StatusServidor): void {

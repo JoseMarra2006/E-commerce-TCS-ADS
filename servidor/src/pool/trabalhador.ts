@@ -9,6 +9,7 @@ import {
 } from "../utilitarios/respostas-erro.ts";
 import { ehMensagemParaThread } from "./mensagens.ts";
 import type { MensagemDaThread, MensagemParaThread } from "./mensagens.ts";
+import { exigeAtualizacaoDeLogados } from "./sinal-logados.ts";
 
 type Aplicacao = ReturnType<typeof criarAplicacao>;
 type MensagemRequisicao = Extract<MensagemParaThread, { tipo: "requisicao" }>;
@@ -27,6 +28,14 @@ function mascararSemFalhar(texto: string | null): string | null {
 
 function enviarMensagem(mensagem: MensagemDaThread): void {
   self.postMessage(mensagem);
+}
+
+function sinalizarSessoesAlteradasSemFalhar(): void {
+  try {
+    enviarMensagem({ tipo: "sessoes_alteradas" });
+  } catch {
+    return;
+  }
 }
 
 function montarRespostaDeErro(mensagem: MensagemRequisicao): MensagemDaThread {
@@ -75,6 +84,12 @@ async function processarRequisicao(
         textoResposta.length === 0
       ? null
       : textoResposta;
+
+    if (
+      exigeAtualizacaoDeLogados(mensagem.metodo, mensagem.url, resposta.status)
+    ) {
+      sinalizarSessoesAlteradasSemFalhar();
+    }
 
     enviarMensagem({
       tipo: "resposta",

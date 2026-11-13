@@ -27,6 +27,7 @@ export type MensagemDaThread =
     corpoRecebidoRegistro: string | null;
     corpoEnviadoRegistro: string | null;
   }
+  | { tipo: "sessoes_alteradas" }
   | { tipo: "encerrada"; numero: number };
 
 export function ehMensagemParaThread(
@@ -96,6 +97,10 @@ export function ehMensagemDaThread(dado: unknown): dado is MensagemDaThread {
       (typeof objeto.corpoEnviadoRegistro === "string" ||
         objeto.corpoEnviadoRegistro === null)
     );
+  }
+
+  if (objeto.tipo === "sessoes_alteradas") {
+    return Object.keys(objeto).length === 1;
   }
 
   if (objeto.tipo === "encerrada") {
