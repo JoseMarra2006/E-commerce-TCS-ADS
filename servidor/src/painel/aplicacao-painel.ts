@@ -3,10 +3,18 @@ import { streamSSE } from "@hono/hono/streaming";
 import type { ControladorServidor } from "../controlador-servidor.ts";
 import { validarPorta } from "../utilitarios/validar-porta.ts";
 import type { EstadoServidor, Registro } from "../estado.ts";
+import type { InstantaneoLogados } from "../logados/monitor-usuarios-logados.ts";
+import {
+  criarFonteLogadosDoControlador,
+  EVENTO_SSE_LOGADOS,
+  type FonteUsuariosLogados,
+  serializarLogadosParaSse,
+} from "./logados-painel.ts";
 
 const MARCADOR_TOKEN = "{{TOKEN_PAINEL}}";
 const INTERVALO_PING_MS = 15000;
 const INTERVALO_MINIMO_ESTADO_MS = 100;
+const LIMITE_FILA_CLIENTE = 1000;
 
 const CABECALHOS_SEGURANCA: Record<string, string> = {
   "Content-Security-Policy":
@@ -22,6 +30,7 @@ export interface OpcoesAplicacaoPainel {
   obterPortaPainel: () => number;
   encerrarProcesso: () => void;
   sinalEncerramento: AbortSignal;
+  fonteLogados?: FonteUsuariosLogados;
 }
 
 function compararEmTempoConstante(a: string, b: string): boolean {
@@ -35,6 +44,18 @@ function compararEmTempoConstante(a: string, b: string): boolean {
   }
 
   return resultado === 0;
+}
+
+function obterLogadosSerializados(fonte: FonteUsuariosLogados): string {
+  try {
+    return serializarLogadosParaSse(fonte.obter());
+  } catch {
+    return serializarLogadosParaSse({
+      estado: "indisponivel",
+      usuarios: [],
+      atualizadoEm: null,
+    });
+  }
 }
 
 export async function criarAplicacaoPainel(
@@ -58,6 +79,9 @@ export async function criarAplicacaoPainel(
     MARCADOR_TOKEN,
     opcoes.token,
   );
+
+  const fonteLogados = opcoes.fonteLogados ??
+    criarFonteLogadosDoControlador(opcoes.controlador);
 
   const app = new Hono();
 
@@ -144,6 +168,7 @@ export async function criarAplicacaoPainel(
 
     return streamSSE(c, async (stream) => {
       let ativo = true;
+      let descartado = false;
       let resolvedorEspera: (() => void) | null = null;
       const fila: { evento: string; dados: string }[] = [];
 
@@ -155,7 +180,19 @@ export async function criarAplicacaoPainel(
         }
       };
 
+      let finalizarConexao = () => {};
+
       const enfileirar = (evento: string, dados: string) => {
+        if (!ativo) {
+          return;
+        }
+        if (fila.length >= LIMITE_FILA_CLIENTE) {
+          descartado = true;
+          fila.length = 0;
+          finalizarConexao();
+          stream.abort();
+          return;
+        }
         fila.push({ evento, dados });
         acordar();
       };
@@ -194,20 +231,39 @@ export async function criarAplicacaoPainel(
         enfileirar("registro", JSON.stringify(registro));
       };
 
+      const ouvinteLogados = (instantaneo: InstantaneoLogados) => {
+        try {
+          enfileirar(EVENTO_SSE_LOGADOS, serializarLogadosParaSse(instantaneo));
+        } catch {
+          return;
+        }
+      };
+
       opcoes.controlador.addEventListener("estado", listenerEstado);
       opcoes.controlador.addEventListener("registro", listenerRegistro);
+      let cancelarInscricaoLogados: () => void = () => {};
+      try {
+        cancelarInscricaoLogados = fonteLogados.inscrever(ouvinteLogados);
+      } catch {
+        cancelarInscricaoLogados = () => {};
+      }
 
       const temporizadorPing = setInterval(() => {
         enfileirar("ping", "");
       }, INTERVALO_PING_MS);
 
-      const finalizarConexao = () => {
+      finalizarConexao = () => {
         if (!ativo) {
           return;
         }
         ativo = false;
         opcoes.controlador.removeEventListener("estado", listenerEstado);
         opcoes.controlador.removeEventListener("registro", listenerRegistro);
+        try {
+          cancelarInscricaoLogados();
+        } catch {
+          cancelarInscricaoLogados = () => {};
+        }
         clearInterval(temporizadorPing);
         if (temporizadorThrottle !== null) {
           clearTimeout(temporizadorThrottle);
@@ -225,6 +281,11 @@ export async function criarAplicacaoPainel(
       await stream.writeSSE({
         event: "estado",
         data: JSON.stringify(opcoes.controlador.obterEstado()),
+      });
+
+      await stream.writeSSE({
+        event: EVENTO_SSE_LOGADOS,
+        data: obterLogadosSerializados(fonteLogados),
       });
 
       for (const registro of opcoes.controlador.obterRegistros()) {
@@ -247,7 +308,7 @@ export async function criarAplicacaoPainel(
           break;
         }
 
-        while (fila.length > 0) {
+        while (fila.length > 0 && !descartado) {
           const item = fila.shift();
           if (!item) {
             break;
