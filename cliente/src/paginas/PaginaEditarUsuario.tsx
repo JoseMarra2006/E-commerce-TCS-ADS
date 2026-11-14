@@ -53,6 +53,7 @@ export function PaginaEditarUsuario() {
   const referenciaSenha = useRef<HTMLInputElement>(null);
   const emEnvio = useRef(false);
   const focoPendente = useRef(false);
+  const idAtual = useRef(idAlvo);
 
   if (idAlvo !== ID_SEM_ALVO && estado.id !== idAlvo) {
     despachar({ tipo: "iniciar", id: idAlvo });
@@ -84,6 +85,10 @@ export function PaginaEditarUsuario() {
       ativa = false;
     };
   }, [idAlvo, token, operacoes, tentativa]);
+
+  useEffect(() => {
+    idAtual.current = idAlvo;
+  }, [idAlvo]);
 
   useEffect(() => {
     if (!focoPendente.current || estado.fase !== "erro_campo") {
@@ -138,18 +143,19 @@ export function PaginaEditarUsuario() {
       return;
     }
 
+    const id = idAlvo;
     emEnvio.current = true;
-    despachar({ tipo: "salvar", id: idAlvo });
-    const resultado = await operacoes.atualizarCadastro(idAlvo, token, validacao.dados);
+    despachar({ tipo: "salvar", id });
+    const resultado = await operacoes.atualizarCadastro(id, token, validacao.dados);
     emEnvio.current = false;
-    if (!montado.current) {
+    if (!montado.current || idAtual.current !== id) {
       return;
     }
 
     if (resultado.ok) {
-      despachar({ tipo: "salvo", id: idAlvo, usuario: resultado.dados });
-      if (resultado.dados.id === idAlvo) {
-        navegar(caminhoDetalheUsuario(idAlvo), { state: criarEstadoAvisoUsuarioAtualizado() });
+      despachar({ tipo: "salvo", id, usuario: resultado.dados });
+      if (resultado.dados.id === id) {
+        navegar(caminhoDetalheUsuario(id), { state: criarEstadoAvisoUsuarioAtualizado() });
       }
       return;
     }
@@ -157,7 +163,7 @@ export function PaginaEditarUsuario() {
     focoPendente.current = true;
     despachar({
       tipo: "falha_salvar",
-      id: idAlvo,
+      id,
       falha: resultado,
       mensagemPadrao404: obterMensagemPadraoStatus(404),
     });

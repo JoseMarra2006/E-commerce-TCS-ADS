@@ -1,10 +1,8 @@
-import { useEffect, useId, useReducer, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Alerta } from "../componentes/Alerta.tsx";
 import { Botao } from "../componentes/Botao.tsx";
 import { CartaoIngresso } from "../componentes/CartaoIngresso.tsx";
-import { LinkTexto } from "../componentes/LinkTexto.tsx";
-import { SeloTipoUsuario } from "../componentes/SeloTipoUsuario.tsx";
 import { useOperacoes } from "../contextos/use-operacoes.ts";
 import { useSessao } from "../contextos/use-sessao.ts";
 import { lerAvisoUsuario } from "./aviso-usuario.ts";
@@ -15,6 +13,7 @@ import {
   textoContadorUsuarios,
 } from "./lista-usuarios.ts";
 import type { EstadoListaUsuarios } from "./lista-usuarios.ts";
+import { TabelaUsuarios } from "./TabelaUsuarios.tsx";
 import { useTituloPagina } from "./use-titulo-pagina.ts";
 import estilos from "./PaginaUsuarios.module.css";
 
@@ -37,7 +36,6 @@ export function PaginaUsuarios() {
   const operacoes = useOperacoes();
   const navegar = useNavigate();
   const localizacao = useLocation();
-  const idLegenda = useId();
   const [aviso] = useState(() => lerAvisoUsuario(localizacao.state));
   const temAvisoNoHistorico = lerAvisoUsuario(localizacao.state) !== null;
   const [estado, despachar] = useReducer(reduzirListaUsuarios, ESTADO_INICIAL_LISTA_USUARIOS);
@@ -111,46 +109,7 @@ export function PaginaUsuarios() {
       )}
 
       {comDados && linhas.length > 0 && (
-        <div className={estilos.rolagem} role="region" aria-labelledby={idLegenda} tabIndex={0}>
-          <table className={estilos.tabela} aria-busy={recarregando ? true : undefined}>
-            <caption id={idLegenda} className={estilos.legenda}>Usuários cadastrados</caption>
-            <thead>
-              <tr>
-                <th scope="col">Nome</th>
-                <th scope="col">E-mail</th>
-                <th scope="col">Tipo</th>
-                <th scope="col">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {linhas.map((linha) => (
-                <tr key={linha.id}>
-                  <td className={estilos.celulaTexto}>
-                    {linha.nome}
-                    {linha.ehVoce && " "}
-                    {linha.ehVoce && <span className={estilos.voce}>Você</span>}
-                  </td>
-                  <td className={estilos.celulaTexto}>{linha.email}</td>
-                  <td>
-                    <SeloTipoUsuario administrador={linha.administrador}>{linha.tipo}</SeloTipoUsuario>
-                  </td>
-                  <td>
-                    {linha.caminhoDetalhe === null
-                      ? <LinkTexto para="/perfil">Meu perfil</LinkTexto>
-                      : (
-                        <LinkTexto
-                          para={linha.caminhoDetalhe}
-                          rotuloAcessivel={`Ver detalhes de ${linha.nome}`}
-                        >
-                          Ver detalhes
-                        </LinkTexto>
-                      )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TabelaUsuarios linhas={linhas} recarregando={recarregando} />
       )}
 
       {comDados && (
