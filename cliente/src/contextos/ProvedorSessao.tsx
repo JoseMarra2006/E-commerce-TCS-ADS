@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { RespostaSessao, RespostaUsuario } from "../tipos/protocolo.ts";
 import { ContextoSessao } from "./contexto-sessao.ts";
 import type { AvisoSessao, SessaoAtiva } from "./contexto-sessao.ts";
+import { criarSessaoAtiva, substituirUsuarioDaSessao } from "./sessao-ativa.ts";
 
 interface PropriedadesProvedorSessao {
   children: ReactNode;
@@ -14,11 +15,11 @@ export function ProvedorSessao({ children }: PropriedadesProvedorSessao) {
   const referenciaAviso = useRef<AvisoSessao | null>(null);
 
   const iniciarSessao = useCallback((resposta: RespostaSessao) => {
-    setSessao({ token: resposta.token, idSessao: resposta.id, usuario: resposta.usuario });
+    setSessao(criarSessaoAtiva(resposta));
   }, []);
 
   const atualizarUsuario = useCallback((usuario: RespostaUsuario) => {
-    setSessao((atual) => (atual === null ? null : { ...atual, usuario }));
+    setSessao((atual) => substituirUsuarioDaSessao(atual, usuario));
   }, []);
 
   const encerrarSessaoLocal = useCallback((aviso?: AvisoSessao) => {

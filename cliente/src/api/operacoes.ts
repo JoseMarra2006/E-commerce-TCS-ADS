@@ -2,17 +2,25 @@ import type {
   CorpoAtualizacaoParcial,
   CorpoCadastro,
   CorpoLogin,
+  DadosProduto,
+  RespostaProduto,
   RespostaSessao,
   RespostaUsuario,
 } from "../tipos/protocolo.ts";
 import type { ClienteHttp, ResultadoHttp, TipoFalha } from "./cliente-http.ts";
-import { lerRespostaSessao, lerRespostaUsuario } from "./validar-respostas.ts";
+import {
+  lerListaProdutos,
+  lerListaUsuarios,
+  lerRespostaProduto,
+  lerRespostaSessao,
+  lerRespostaUsuario,
+} from "./validar-respostas.ts";
 
 export type ResultadoOperacao<T> =
   | { ok: true; dados: T }
   | {
     ok: false;
-    tipo: TipoFalha | "fora_protocolo";
+    tipo: TipoFalha | "fora_protocolo" | "entrada_invalida";
     status: number | null;
     mensagem: string;
   };
@@ -28,6 +36,16 @@ export interface Operacoes {
   ) => Promise<ResultadoOperacao<RespostaUsuario>>;
   excluirCadastro: (idUsuario: number, token: string) => Promise<ResultadoOperacao<true>>;
   sair: (idSessao: string, token: string) => Promise<ResultadoOperacao<true>>;
+  listarUsuarios: (token: string) => Promise<ResultadoOperacao<RespostaUsuario[]>>;
+  listarProdutos: (token: string) => Promise<ResultadoOperacao<RespostaProduto[]>>;
+  lerProduto: (idProduto: number, token: string) => Promise<ResultadoOperacao<RespostaProduto>>;
+  criarProduto: (token: string, dados: DadosProduto) => Promise<ResultadoOperacao<RespostaProduto>>;
+  atualizarProduto: (
+    idProduto: number,
+    token: string,
+    dados: DadosProduto,
+  ) => Promise<ResultadoOperacao<RespostaProduto>>;
+  excluirProduto: (idProduto: number, token: string) => Promise<ResultadoOperacao<true>>;
   verificarServidor: () => Promise<ResultadoOperacao<ResultadoVerificacao>>;
 }
 
@@ -37,6 +55,21 @@ export interface ResultadoVerificacao {
 }
 
 const MENSAGEM_FORA_PROTOCOLO = "Resposta do servidor fora do protocolo.";
+const MENSAGEM_ID_INVALIDO = "O identificador informado é inválido.";
+const CAMINHO_USUARIOS = "/api/v1/users";
+const CAMINHO_PRODUTOS = "/api/v1/products";
+
+function caminhoComId(colecao: string, id: number): string | null {
+  return Number.isSafeInteger(id) && id > 0 ? `${colecao}/${String(id)}` : null;
+}
+
+function falhaIdInvalido<T>(): ResultadoOperacao<T> {
+  return { ok: false, tipo: "entrada_invalida", status: null, mensagem: MENSAGEM_ID_INVALIDO };
+}
+
+function copiarDadosProduto(dados: DadosProduto): DadosProduto {
+  return { nome: dados.nome, descricao: dados.descricao, quantidade: dados.quantidade };
+}
 
 function extrairDados<T>(
   resultado: ResultadoHttp,
@@ -121,7 +154,7 @@ export function criarOperacoes(cliente: ClienteHttp): Operacoes {
       extrairDados(
         await cliente.enviar({
           metodo: "POST",
-          caminho: "/api/v1/users",
+          caminho: CAMINHO_USUARIOS,
           corpo: { nome: corpo.nome, email: corpo.email, senha: corpo.senha },
         }),
         lerRespostaUsuario,
@@ -137,35 +170,32 @@ export function criarOperacoes(cliente: ClienteHttp): Operacoes {
         lerRespostaSessao,
       ),
 
-    lerCadastro: async (idUsuario, token) =>
-      extrairDados(
-        await cliente.enviar({
-          metodo: "GET",
-          caminho: `/api/v1/users/${encodeURIComponent(String(idUsuario))}`,
-          token,
-        }),
-        lerRespostaUsuario,
-      ),
+    lerCadastro: async (idUsuario, token) => {
+      const caminho = caminhoComId(CAMINHO_USUARIOS, idUsuario);
+      if (caminho === null) {
+        return falhaIdInvalido();
+      }
+      return extrairDados(await cliente.enviar({ metodo: "GET", caminho, token }), lerRespostaUsuario);
+    },
 
-    atualizarCadastro: async (idUsuario, token, alteracoes) =>
-      extrairDados(
-        await cliente.enviar({
-          metodo: "PATCH",
-          caminho: `/api/v1/users/${encodeURIComponent(String(idUsuario))}`,
-          token,
-          corpo: copiarAlteracoes(alteracoes),
-        }),
+    atualizarCadastro: async (idUsuario, token, alteracoes) => {
+      const caminho = caminhoComId(CAMINHO_USUARIOS, idUsuario);
+      if (caminho === null) {
+        return falhaIdInvalido();
+      }
+      return extrairDados(
+        await cliente.enviar({ metodo: "PATCH", caminho, token, corpo: copiarAlteracoes(alteracoes) }),
         lerRespostaUsuario,
-      ),
+      );
+    },
 
-    excluirCadastro: async (idUsuario, token) =>
-      extrairConfirmacao(
-        await cliente.enviar({
-          metodo: "DELETE",
-          caminho: `/api/v1/users/${encodeURIComponent(String(idUsuario))}`,
-          token,
-        }),
-      ),
+    excluirCadastro: async (idUsuario, token) => {
+      const caminho = caminhoComId(CAMINHO_USUARIOS, idUsuario);
+      if (caminho === null) {
+        return falhaIdInvalido();
+      }
+      return extrairConfirmacao(await cliente.enviar({ metodo: "DELETE", caminho, token }));
+    },
 
     sair: async (idSessao, token) =>
       extrairConfirmacao(
@@ -175,6 +205,56 @@ export function criarOperacoes(cliente: ClienteHttp): Operacoes {
           token,
         }),
       ),
+
+    listarUsuarios: async (token) =>
+      extrairDados(
+        await cliente.enviar({ metodo: "GET", caminho: CAMINHO_USUARIOS, token }),
+        lerListaUsuarios,
+      ),
+
+    listarProdutos: async (token) =>
+      extrairDados(
+        await cliente.enviar({ metodo: "GET", caminho: CAMINHO_PRODUTOS, token }),
+        lerListaProdutos,
+      ),
+
+    lerProduto: async (idProduto, token) => {
+      const caminho = caminhoComId(CAMINHO_PRODUTOS, idProduto);
+      if (caminho === null) {
+        return falhaIdInvalido();
+      }
+      return extrairDados(await cliente.enviar({ metodo: "GET", caminho, token }), lerRespostaProduto);
+    },
+
+    criarProduto: async (token, dados) =>
+      extrairDados(
+        await cliente.enviar({
+          metodo: "POST",
+          caminho: CAMINHO_PRODUTOS,
+          token,
+          corpo: copiarDadosProduto(dados),
+        }),
+        lerRespostaProduto,
+      ),
+
+    atualizarProduto: async (idProduto, token, dados) => {
+      const caminho = caminhoComId(CAMINHO_PRODUTOS, idProduto);
+      if (caminho === null) {
+        return falhaIdInvalido();
+      }
+      return extrairDados(
+        await cliente.enviar({ metodo: "PUT", caminho, token, corpo: copiarDadosProduto(dados) }),
+        lerRespostaProduto,
+      );
+    },
+
+    excluirProduto: async (idProduto, token) => {
+      const caminho = caminhoComId(CAMINHO_PRODUTOS, idProduto);
+      if (caminho === null) {
+        return falhaIdInvalido();
+      }
+      return extrairConfirmacao(await cliente.enviar({ metodo: "DELETE", caminho, token }));
+    },
 
     verificarServidor: () => verificar(cliente),
   };

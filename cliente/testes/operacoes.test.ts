@@ -11,7 +11,8 @@ import {
 } from "./auxiliares-api.ts";
 
 const conexao = { ip: "10.20.50.123", porta: 20000 };
-const usuario = { id: 5, nome: "Ana Lima", email: "ana@exemplo.com" };
+const usuario = { id: 5, nome: "Ana Lima", email: "ana@exemplo.com", admin: false };
+const administrador = { id: 1, nome: "Admin", email: "adm@teste.com", admin: true };
 
 function operacoesCom(status: number, corpo: string) {
   const falso = criarIntermediarioFalso(() => respostaJson(resultadoResposta(status, corpo)));
@@ -130,6 +131,39 @@ describe("operações: leitura tolerante das respostas", () => {
     const resultado = await operacoes.entrar({ email: "ana@exemplo.com", senha: "abc123" });
     expect(resultado).toEqual({ ok: true, dados: { id: "s", token: "t", usuario } });
     expect(Object.keys(resultado.ok ? resultado.dados : {}).sort()).toEqual(["id", "token", "usuario"]);
+  });
+
+  it("login com admin true devolve o usuário com admin true", async () => {
+    const resultado = await operacoesCom(
+      201,
+      JSON.stringify({ id: "s", token: "t", usuario: administrador }),
+    ).operacoes.entrar({ email: "adm@teste.com", senha: "admin123" });
+    expect(resultado).toEqual({ ok: true, dados: { id: "s", token: "t", usuario: administrador } });
+  });
+
+  it("admin ausente ou não booleano vira false sem invalidar a resposta", async () => {
+    const semAdmin = { id: 5, nome: "Ana Lima", email: "ana@exemplo.com" };
+    const cadastro = await operacoesCom(201, JSON.stringify(semAdmin)).operacoes.cadastrar({
+      nome: "Ana Lima",
+      email: "ana@exemplo.com",
+      senha: "abc123",
+    });
+    expect(cadastro).toEqual({ ok: true, dados: usuario });
+    const sessao = await operacoesCom(
+      201,
+      JSON.stringify({ id: "s", token: "t", usuario: { ...semAdmin, admin: "true" } }),
+    ).operacoes.entrar({ email: "ana@exemplo.com", senha: "abc123" });
+    expect(sessao).toEqual({ ok: true, dados: { id: "s", token: "t", usuario } });
+  });
+
+  it("lerCadastro e atualizarCadastro preservam admin true", async () => {
+    const lido = await operacoesCom(200, JSON.stringify(administrador)).operacoes.lerCadastro(1, "t");
+    expect(lido).toEqual({ ok: true, dados: administrador });
+    const atualizado = await operacoesCom(
+      200,
+      JSON.stringify({ ...administrador, nome: "Admin Novo" }),
+    ).operacoes.atualizarCadastro(1, "t", { nome: "Admin Novo" });
+    expect(atualizado).toEqual({ ok: true, dados: { ...administrador, nome: "Admin Novo" } });
   });
 
   it("converte id de usuário em texto e id de sessão numérico", async () => {

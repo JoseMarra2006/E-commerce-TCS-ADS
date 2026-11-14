@@ -24,5 +24,12 @@ export function envolverOperacoesComTratamento401(
     atualizarCadastro: (idUsuario, token, alteracoes) =>
       tratar(operacoes.atualizarCadastro(idUsuario, token, alteracoes)),
     excluirCadastro: (idUsuario, token) => tratar(operacoes.excluirCadastro(idUsuario, token)),
+    listarUsuarios: (token) => tratar(operacoes.listarUsuarios(token)),
+    listarProdutos: (token) => tratar(operacoes.listarProdutos(token)),
+    lerProduto: (idProduto, token) => tratar(operacoes.lerProduto(idProduto, token)),
+    criarProduto: (token, dados) => tratar(operacoes.criarProduto(token, dados)),
+    atualizarProduto: (idProduto, token, dados) =>
+      tratar(operacoes.atualizarProduto(idProduto, token, dados)),
+    excluirProduto: (idProduto, token) => tratar(operacoes.excluirProduto(idProduto, token)),
   };
 }

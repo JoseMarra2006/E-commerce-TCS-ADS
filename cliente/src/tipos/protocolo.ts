@@ -2,6 +2,14 @@ export interface RespostaUsuario {
   id: number;
   nome: string;
   email: string;
+  admin: boolean;
+}
+
+export interface RespostaProduto {
+  id: number;
+  nome: string;
+  descricao: string;
+  quantidade: number;
 }
 
 export interface RespostaSessao {
@@ -19,6 +27,12 @@ export interface CorpoCadastro {
 export interface CorpoLogin {
   email: string;
   senha: string;
+}
+
+export interface DadosProduto {
+  nome: string;
+  descricao: string;
+  quantidade: number;
 }
 
 export interface CorpoAtualizacaoParcial {

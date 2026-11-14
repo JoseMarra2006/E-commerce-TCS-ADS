@@ -20,7 +20,7 @@ const MENSAGEM_SENHA_PADRAO =
 const MENSAGEM_NOME =
   "O campo nome deve ter entre 3 e 50 caracteres, sem contar espaços no início e no fim.";
 
-const atuais = { id: 7, nome: "Maria Silva", email: "maria@exemplo.com" };
+const atuais = { id: 7, nome: "Maria Silva", email: "maria@exemplo.com", admin: false };
 
 describe("validarEmail", () => {
   it("aceita e-mails válidos nos limites", () => {
