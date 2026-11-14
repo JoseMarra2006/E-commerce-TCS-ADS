@@ -1,4 +1,5 @@
 import { Navigate, Outlet } from "react-router";
+import { ehAdministrador } from "../contextos/eh-administrador.ts";
 import { useConexao } from "../contextos/use-conexao.ts";
 import { useSessao } from "../contextos/use-sessao.ts";
 import { decidirAcesso } from "./destinos.ts";
@@ -11,7 +12,12 @@ interface PropriedadesRotaProtegida {
 export function RotaProtegida({ requisito }: PropriedadesRotaProtegida) {
   const { conexao } = useConexao();
   const { sessao } = useSessao();
-  const decisao = decidirAcesso(requisito, conexao !== null, sessao !== null);
+  const decisao = decidirAcesso(
+    requisito,
+    conexao !== null,
+    sessao !== null,
+    ehAdministrador(sessao?.usuario),
+  );
 
   if (!decisao.permitido) {
     return <Navigate to={decisao.destino} replace />;
