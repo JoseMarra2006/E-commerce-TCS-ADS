@@ -27,7 +27,7 @@ export function Layout() {
               <ul className={estilos.listaNavegacao}>
                 {links.map((link) => (
                   <li key={link.para}>
-                    <NavLink to={link.para} end className={estilos.linkNavegacao}>
+                    <NavLink to={link.para} className={estilos.linkNavegacao}>
                       {link.texto}
                     </NavLink>
                   </li>

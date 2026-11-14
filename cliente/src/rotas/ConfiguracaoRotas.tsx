@@ -6,7 +6,9 @@ import { PaginaEditarUsuario } from "../paginas/PaginaEditarUsuario.tsx";
 import { PaginaConexao } from "../paginas/PaginaConexao.tsx";
 import { PaginaDetalheUsuario } from "../paginas/PaginaDetalheUsuario.tsx";
 import { PaginaLogin } from "../paginas/PaginaLogin.tsx";
+import { PaginaDetalheProduto } from "../paginas/PaginaDetalheProduto.tsx";
 import { PaginaPerfil } from "../paginas/PaginaPerfil.tsx";
+import { PaginaProdutos } from "../paginas/PaginaProdutos.tsx";
 import { PaginaUsuarios } from "../paginas/PaginaUsuarios.tsx";
 import { DestinoInicial } from "./DestinoInicial.tsx";
 import { RotaComSessao } from "./RotaComSessao.tsx";
@@ -26,6 +28,8 @@ export function ConfiguracaoRotas() {
         <Route element={<RotaComSessao />}>
           <Route path="/perfil" element={<PaginaPerfil />} />
           <Route path="/perfil/editar" element={<PaginaEditarCadastro />} />
+          <Route path="/produtos" element={<PaginaProdutos />} />
+          <Route path="/produtos/:id" element={<PaginaDetalheProduto />} />
         </Route>
         <Route element={<RotaProtegida requisito="admin" />}>
           <Route path="/usuarios" element={<PaginaUsuarios />} />

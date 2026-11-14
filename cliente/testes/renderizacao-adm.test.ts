@@ -112,9 +112,11 @@ describe("cabeçalho: link Usuários", () => {
     expect(html).toMatch(/<nav aria-label="Navegação principal"[^>]*>.*href="\/usuarios"[^>]*>Usuários<\/a>.*<\/nav>/s);
   });
 
-  it("não aparece para usuário comum nem sem sessão", () => {
-    expect(renderizar("/perfil", sessaoDe(comum)).html).not.toContain(NAV_PRINCIPAL);
-    expect(renderizar("/perfil", sessaoDe(comum)).html).not.toContain('href="/usuarios"');
+  it("não aparece para usuário comum, que vê só Produtos, nem sem sessão, que não tem navegação", () => {
+    const html = renderizar("/perfil", sessaoDe(comum)).html;
+    expect(html).toContain(NAV_PRINCIPAL);
+    expect(html).toMatch(/<nav aria-label="Navegação principal"[^>]*>.*href="\/produtos"[^>]*>Produtos<\/a>.*<\/nav>/s);
+    expect(html).not.toContain('href="/usuarios"');
     expect(renderizar("/login", null).html).not.toContain(NAV_PRINCIPAL);
   });
 

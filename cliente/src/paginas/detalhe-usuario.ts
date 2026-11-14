@@ -1,9 +1,10 @@
 import { ehAdministrador } from "../contextos/eh-administrador.ts";
 import type { ResultadoOperacao } from "../api/operacoes.ts";
 import type { RespostaUsuario } from "../tipos/protocolo.ts";
+import { interpretarIdRota } from "./id-rota.ts";
 import { rotularTipoUsuario } from "./lista-usuarios.ts";
 
-const PADRAO_DIGITOS_ASCII = /^[0-9]+$/;
+export { interpretarIdRota };
 
 export const MENSAGEM_ID_ROTA_INVALIDO = "Identificador de usuário inválido.";
 export const TITULO_NAO_ENCONTRADO = "Usuário não encontrado.";
@@ -33,14 +34,6 @@ export interface ItemDetalheUsuario {
   rotulo: string;
   valor: string;
   selo: "nenhum" | "administrador" | "comum";
-}
-
-export function interpretarIdRota(texto: string | undefined): number | null {
-  if (texto === undefined || !PADRAO_DIGITOS_ASCII.test(texto)) {
-    return null;
-  }
-  const numero = Number(texto);
-  return Number.isSafeInteger(numero) && numero > 0 ? numero : null;
 }
 
 export function decidirDestinoDetalhe(

@@ -1,0 +1,10 @@
+.selo {
+  display: inline-block;
+  padding: 0.1rem var(--espaco-2);
+  border: 1px solid var(--cor-erro-texto);
+  border-radius: var(--raio-pilula);
+  color: var(--cor-erro-texto);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
