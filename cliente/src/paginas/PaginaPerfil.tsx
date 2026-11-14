@@ -9,6 +9,7 @@ import { useOperacoes } from "../contextos/use-operacoes.ts";
 import { useSair } from "../contextos/use-sair.ts";
 import { useSessao } from "../contextos/use-sessao.ts";
 import { lerEstadoPerfil } from "./estado-navegacao.ts";
+import { montarDialogoExclusaoPropriaConta } from "./exclusao-propria-conta.ts";
 import { formatarHorario, formatarNumeroCadastro } from "./formatacao.ts";
 import { useMontado } from "./use-montado.ts";
 import { useTituloPagina } from "./use-titulo-pagina.ts";
@@ -73,6 +74,7 @@ export function PaginaPerfil() {
   }
 
   const { usuario } = sessao;
+  const dialogoExclusao = montarDialogoExclusaoPropriaConta(usuario);
 
   function buscarNovamente() {
     setCarregando(true);
@@ -189,8 +191,8 @@ export function PaginaPerfil() {
       <DialogoConfirmacao
         aberto={confirmando}
         titulo="Excluir cadastro?"
-        descricao="Esta ação é permanente. Seus dados serão apagados deste servidor e você será desconectado."
-        textoConfirmar="Excluir cadastro"
+        descricao={dialogoExclusao.descricao}
+        textoConfirmar={dialogoExclusao.textoConfirmar}
         textoConfirmando="Excluindo..."
         variante="perigo"
         carregando={excluindo}

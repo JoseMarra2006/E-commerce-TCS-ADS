@@ -1,4 +1,5 @@
 import { useEffect, useId, useReducer, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { Alerta } from "../componentes/Alerta.tsx";
 import { Botao } from "../componentes/Botao.tsx";
 import { CartaoIngresso } from "../componentes/CartaoIngresso.tsx";
@@ -6,6 +7,7 @@ import { LinkTexto } from "../componentes/LinkTexto.tsx";
 import { SeloTipoUsuario } from "../componentes/SeloTipoUsuario.tsx";
 import { useOperacoes } from "../contextos/use-operacoes.ts";
 import { useSessao } from "../contextos/use-sessao.ts";
+import { lerAvisoUsuario } from "./aviso-usuario.ts";
 import {
   ESTADO_INICIAL_LISTA_USUARIOS,
   montarLinhasUsuarios,
@@ -33,11 +35,21 @@ export function PaginaUsuarios() {
   useTituloPagina("Usuários");
   const { sessao } = useSessao();
   const operacoes = useOperacoes();
+  const navegar = useNavigate();
+  const localizacao = useLocation();
   const idLegenda = useId();
+  const [aviso] = useState(() => lerAvisoUsuario(localizacao.state));
+  const temAvisoNoHistorico = lerAvisoUsuario(localizacao.state) !== null;
   const [estado, despachar] = useReducer(reduzirListaUsuarios, ESTADO_INICIAL_LISTA_USUARIOS);
   const [tentativa, setTentativa] = useState(0);
 
   const token = sessao?.token;
+
+  useEffect(() => {
+    if (temAvisoNoHistorico) {
+      navegar(localizacao.pathname, { replace: true });
+    }
+  }, [temAvisoNoHistorico, navegar, localizacao.pathname]);
 
   useEffect(() => {
     if (token === undefined) {
@@ -81,6 +93,8 @@ export function PaginaUsuarios() {
       descricao="Usuários cadastrados neste servidor."
       largura="larga"
     >
+      {aviso !== null && <Alerta tipo="sucesso" mensagem={aviso} />}
+
       <p role="status" className={estilos.situacao}>{textoSituacao(estado)}</p>
 
       {estado.fase === "erro" && (

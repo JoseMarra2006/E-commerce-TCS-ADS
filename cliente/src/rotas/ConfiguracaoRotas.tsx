@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router";
 import { Layout } from "../componentes/Layout.tsx";
 import { PaginaCadastro } from "../paginas/PaginaCadastro.tsx";
 import { PaginaEditarCadastro } from "../paginas/PaginaEditarCadastro.tsx";
+import { PaginaEditarUsuario } from "../paginas/PaginaEditarUsuario.tsx";
 import { PaginaConexao } from "../paginas/PaginaConexao.tsx";
 import { PaginaDetalheUsuario } from "../paginas/PaginaDetalheUsuario.tsx";
 import { PaginaLogin } from "../paginas/PaginaLogin.tsx";
@@ -29,6 +30,7 @@ export function ConfiguracaoRotas() {
         <Route element={<RotaProtegida requisito="admin" />}>
           <Route path="/usuarios" element={<PaginaUsuarios />} />
           <Route path="/usuarios/:id" element={<PaginaDetalheUsuario />} />
+          <Route path="/usuarios/:id/editar" element={<PaginaEditarUsuario />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
