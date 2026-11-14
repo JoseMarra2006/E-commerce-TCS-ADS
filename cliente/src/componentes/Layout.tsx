@@ -1,10 +1,11 @@
-import { Link, Outlet } from "react-router";
+import { Link, NavLink, Outlet } from "react-router";
 import { useConexao } from "../contextos/use-conexao.ts";
 import { useSair } from "../contextos/use-sair.ts";
 import { useSessao } from "../contextos/use-sessao.ts";
 import { obterPrimeiroNome } from "../paginas/formatacao.ts";
 import { BotaoTema } from "./BotaoTema.tsx";
 import { Marca } from "./Marca.tsx";
+import { montarLinksNavegacao } from "./navegacao.ts";
 import { PainelMensagens } from "./painel-mensagens/PainelMensagens.tsx";
 import estilos from "./Layout.module.css";
 
@@ -12,6 +13,7 @@ export function Layout() {
   const { conexao } = useConexao();
   const { sessao } = useSessao();
   const { sair, saindo } = useSair();
+  const links = montarLinksNavegacao(sessao?.usuario);
 
   return (
     <div className={estilos.estrutura}>
@@ -20,6 +22,19 @@ export function Layout() {
           <Link to="/" className={estilos.linkMarca}>
             <Marca />
           </Link>
+          {links.length > 0 && (
+            <nav aria-label="Navegação principal" className={estilos.navegacao}>
+              <ul className={estilos.listaNavegacao}>
+                {links.map((link) => (
+                  <li key={link.para}>
+                    <NavLink to={link.para} end className={estilos.linkNavegacao}>
+                      {link.texto}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
           <div className={estilos.acoes}>
             <div className={estilos.conexao}>
               {sessao !== null && (

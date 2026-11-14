@@ -89,6 +89,10 @@ const MENSAGENS_STATUS: Record<number, string> = {
   500: "Erro interno no servidor.",
 };
 
+export function obterMensagemPadraoStatus(status: number): string | undefined {
+  return MENSAGENS_STATUS[status];
+}
+
 function ehObjeto(valor: unknown): valor is Record<string, unknown> {
   return typeof valor === "object" && valor !== null && !Array.isArray(valor);
 }

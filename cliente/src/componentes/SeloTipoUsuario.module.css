@@ -1,0 +1,15 @@
+.selo {
+  display: inline-block;
+  padding: 0.1rem var(--espaco-2);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio-pilula);
+  color: var(--cor-texto-secundario);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.administrador {
+  border-color: var(--cor-primaria-texto);
+  color: var(--cor-primaria-texto);
+}

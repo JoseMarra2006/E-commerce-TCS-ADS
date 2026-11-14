@@ -7,7 +7,7 @@ interface PropriedadesCartaoIngresso {
   titulo: string;
   rotulo?: string;
   descricao?: string;
-  largura?: "estreita" | "media";
+  largura?: "estreita" | "media" | "larga";
   children: ReactNode;
 }
 

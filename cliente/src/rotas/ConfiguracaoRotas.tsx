@@ -3,10 +3,13 @@ import { Layout } from "../componentes/Layout.tsx";
 import { PaginaCadastro } from "../paginas/PaginaCadastro.tsx";
 import { PaginaEditarCadastro } from "../paginas/PaginaEditarCadastro.tsx";
 import { PaginaConexao } from "../paginas/PaginaConexao.tsx";
+import { PaginaDetalheUsuario } from "../paginas/PaginaDetalheUsuario.tsx";
 import { PaginaLogin } from "../paginas/PaginaLogin.tsx";
 import { PaginaPerfil } from "../paginas/PaginaPerfil.tsx";
+import { PaginaUsuarios } from "../paginas/PaginaUsuarios.tsx";
 import { DestinoInicial } from "./DestinoInicial.tsx";
 import { RotaComSessao } from "./RotaComSessao.tsx";
+import { RotaProtegida } from "./RotaProtegida.tsx";
 import { RotaSemSessao } from "./RotaSemSessao.tsx";
 
 export function ConfiguracaoRotas() {
@@ -22,6 +25,10 @@ export function ConfiguracaoRotas() {
         <Route element={<RotaComSessao />}>
           <Route path="/perfil" element={<PaginaPerfil />} />
           <Route path="/perfil/editar" element={<PaginaEditarCadastro />} />
+        </Route>
+        <Route element={<RotaProtegida requisito="admin" />}>
+          <Route path="/usuarios" element={<PaginaUsuarios />} />
+          <Route path="/usuarios/:id" element={<PaginaDetalheUsuario />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

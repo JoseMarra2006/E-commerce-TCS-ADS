@@ -17,6 +17,10 @@
   max-width: 600px;
 }
 
+.larga {
+  max-width: 880px;
+}
+
 .superior {
   display: flex;
   flex-direction: column;

@@ -32,6 +32,46 @@
   gap: var(--espaco-4);
 }
 
+.navegacao {
+  flex: 1;
+  min-width: 0;
+}
+
+.listaNavegacao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linkNavegacao {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--espaco-3);
+  border-radius: var(--raio-pilula);
+  color: var(--cor-cabecalho-texto);
+  font-size: 0.925rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.linkNavegacao:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.linkNavegacao[aria-current="page"] {
+  background: var(--cor-cabecalho-texto);
+  color: var(--cor-cabecalho);
+}
+
+.linkNavegacao:focus-visible {
+  outline-color: var(--cor-cabecalho-foco);
+}
+
 .conexao {
   display: flex;
   align-items: center;
