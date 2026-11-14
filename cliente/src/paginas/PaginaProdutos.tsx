@@ -5,7 +5,7 @@ import { Botao } from "../componentes/Botao.tsx";
 import { CartaoIngresso } from "../componentes/CartaoIngresso.tsx";
 import { useOperacoes } from "../contextos/use-operacoes.ts";
 import { useSessao } from "../contextos/use-sessao.ts";
-import { lerAvisoProduto } from "./aviso-produto.ts";
+import { AVISOS_DA_LISTA_DE_PRODUTOS, lerAvisoProduto } from "./aviso-produto.ts";
 import { AcoesListaProdutos } from "./AcoesListaProdutos.tsx";
 import {
   ESTADO_INICIAL_LISTA_PRODUTOS,
@@ -38,7 +38,9 @@ export function PaginaProdutos() {
   const operacoes = useOperacoes();
   const navegar = useNavigate();
   const localizacao = useLocation();
-  const [aviso] = useState(() => lerAvisoProduto(localizacao.state));
+  const [aviso] = useState(() =>
+    lerAvisoProduto(localizacao.state, AVISOS_DA_LISTA_DE_PRODUTOS)
+  );
   const temAvisoNoHistorico = lerAvisoProduto(localizacao.state) !== null;
   const [estado, despachar] = useReducer(reduzirListaProdutos, ESTADO_INICIAL_LISTA_PRODUTOS);
   const [tentativa, setTentativa] = useState(0);
@@ -112,7 +114,11 @@ export function PaginaProdutos() {
       )}
 
       {comDados && linhas.length > 0 && (
-        <TabelaProdutos linhas={linhas} recarregando={recarregando} />
+        <TabelaProdutos
+          linhas={linhas}
+          recarregando={recarregando}
+          mostrarEditar={podeCadastrar}
+        />
       )}
 
       {comDados && (

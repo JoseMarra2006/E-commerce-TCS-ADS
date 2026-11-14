@@ -89,7 +89,7 @@
     align-items: stretch;
   }
 
-  .acoes button {
+  .acoes > * {
     width: 100%;
   }
 }

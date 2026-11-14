@@ -1,15 +1,18 @@
-import { useEffect, useReducer, useState } from "react";
-import { useParams } from "react-router";
+import { useEffect, useReducer, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { obterMensagemPadraoStatus } from "../api/cliente-http.ts";
 import { Alerta } from "../componentes/Alerta.tsx";
 import { Botao } from "../componentes/Botao.tsx";
 import { CartaoIngresso } from "../componentes/CartaoIngresso.tsx";
+import { DialogoConfirmacao } from "../componentes/DialogoConfirmacao.tsx";
 import { juntarClasses } from "../componentes/juntar-classes.ts";
 import { LinkTexto } from "../componentes/LinkTexto.tsx";
 import { SeloEsgotado } from "../componentes/SeloEsgotado.tsx";
 import { useOperacoes } from "../contextos/use-operacoes.ts";
 import { useSessao } from "../contextos/use-sessao.ts";
-import { CAMINHO_LISTA_PRODUTOS } from "./caminhos-produtos.ts";
+import { AcoesDetalheProduto } from "./AcoesDetalheProduto.tsx";
+import { AVISOS_DO_DETALHE_DE_PRODUTO, lerAvisoProduto } from "./aviso-produto.ts";
+import { CAMINHO_LISTA_PRODUTOS, caminhoEdicaoProduto } from "./caminhos-produtos.ts";
 import {
   criarEstadoDetalheProduto,
   decidirDestinoDetalheProduto,
@@ -19,6 +22,20 @@ import {
   textoSituacaoDetalheProduto,
   TITULO_PRODUTO_NAO_ENCONTRADO,
 } from "./detalhe-produto.ts";
+import {
+  criarEstadoExclusaoProduto,
+  destinoAposExclusao,
+  dialogoExclusaoProdutoAberto,
+  enviarExclusaoProduto,
+  reduzirExclusaoProduto,
+  ROTULO_CONFIRMAR_EXCLUSAO_PRODUTO,
+  ROTULO_EXCLUINDO_PRODUTO,
+  textoDialogoExclusaoProduto,
+  textoErroDialogoExclusao,
+  TITULO_DIALOGO_EXCLUSAO_PRODUTO,
+} from "./exclusao-produto.ts";
+import { podeGerenciarProdutos } from "./lista-produtos.ts";
+import { useMontado } from "./use-montado.ts";
 import { useTituloPagina } from "./use-titulo-pagina.ts";
 import estilos from "./PaginaDetalheProduto.module.css";
 
@@ -29,6 +46,9 @@ export function PaginaDetalheProduto() {
   const { id: parametro } = useParams();
   const { sessao } = useSessao();
   const operacoes = useOperacoes();
+  const navegar = useNavigate();
+  const localizacao = useLocation();
+  const montado = useMontado();
   const [tentativa, setTentativa] = useState(0);
 
   const destino = decidirDestinoDetalheProduto(parametro);
@@ -38,11 +58,36 @@ export function PaginaDetalheProduto() {
     idAlvo,
     criarEstadoDetalheProduto,
   );
+  const [aviso] = useState(() => ({
+    id: idAlvo,
+    texto: lerAvisoProduto(localizacao.state, AVISOS_DO_DETALHE_DE_PRODUTO),
+  }));
+  const temAvisoNoHistorico = lerAvisoProduto(localizacao.state) !== null;
+  const [exclusao, despacharExclusao] = useReducer(
+    reduzirExclusaoProduto,
+    idAlvo,
+    criarEstadoExclusaoProduto,
+  );
   const token = sessao?.token;
+  const idAtual = useRef(idAlvo);
+  const travaExclusao = useRef(false);
 
   if (idAlvo !== ID_SEM_ALVO && estado.id !== idAlvo) {
     despachar({ tipo: "iniciar", id: idAlvo });
   }
+  if (exclusao.id !== idAlvo) {
+    despacharExclusao({ tipo: "iniciar", id: idAlvo });
+  }
+
+  useEffect(() => {
+    idAtual.current = idAlvo;
+  }, [idAlvo]);
+
+  useEffect(() => {
+    if (temAvisoNoHistorico) {
+      navegar(localizacao.pathname, { replace: true });
+    }
+  }, [temAvisoNoHistorico, navegar, localizacao.pathname]);
 
   useEffect(() => {
     if (idAlvo === ID_SEM_ALVO || token === undefined) {
@@ -80,7 +125,38 @@ export function PaginaDetalheProduto() {
     setTentativa((atual) => atual + 1);
   }
 
+  async function confirmarExclusao() {
+    if (token === undefined || exclusao.fase !== "confirmando") {
+      return;
+    }
+    const id = idAlvo;
+    const resultado = await enviarExclusaoProduto({
+      excluirProduto: operacoes.excluirProduto,
+      token,
+      id,
+      trava: travaExclusao,
+      aoIniciar: () => despacharExclusao({ tipo: "iniciar_envio", id }),
+    });
+    if (resultado.tipo === "ignorado" || !montado.current || idAtual.current !== id) {
+      return;
+    }
+    const destinoExclusao = destinoAposExclusao(resultado);
+    if (destinoExclusao !== null) {
+      navegar(destinoExclusao.para, { replace: true, state: destinoExclusao.estado });
+      return;
+    }
+    if (resultado.tipo === "proibido") {
+      despacharExclusao({ tipo: "falha_pagina", id, mensagem: resultado.mensagem });
+    } else if (resultado.tipo === "falha") {
+      despacharExclusao({ tipo: "falha_dialogo", id, mensagem: resultado.mensagem });
+    } else {
+      despacharExclusao({ tipo: "fim", id });
+    }
+  }
+
   const visivel = estado.id === idAlvo ? estado : criarEstadoDetalheProduto(idAlvo);
+  const exclusaoVisivel = exclusao.id === idAlvo ? exclusao : criarEstadoExclusaoProduto(idAlvo);
+  const podeGerenciar = podeGerenciarProdutos(sessao.usuario);
   const voltar = (
     <LinkTexto para={CAMINHO_LISTA_PRODUTOS}>Voltar para a lista de produtos</LinkTexto>
   );
@@ -101,6 +177,10 @@ export function PaginaDetalheProduto() {
         )
         : (
           <>
+            {aviso.texto !== null && aviso.id === idAlvo && (
+              <Alerta tipo="sucesso" mensagem={aviso.texto} />
+            )}
+
             <p role="status" className={estilos.situacao}>
               {textoSituacaoDetalheProduto(visivel)}
             </p>
@@ -146,12 +226,37 @@ export function PaginaDetalheProduto() {
 
             {visivel.fase === "erro" && <Alerta tipo="erro" mensagem={visivel.mensagem} />}
 
+            {visivel.fase === "sucesso" && exclusaoVisivel.erroPagina !== null && (
+              <Alerta tipo="erro" mensagem={exclusaoVisivel.erroPagina} />
+            )}
+
             <div className={estilos.acoes}>
+              {visivel.fase === "sucesso" && podeGerenciar && (
+                <AcoesDetalheProduto
+                  caminhoEdicao={caminhoEdicaoProduto(visivel.id)}
+                  aoExcluir={() => despacharExclusao({ tipo: "abrir", id: idAlvo })}
+                />
+              )}
               {visivel.fase === "erro" && (
                 <Botao variante="secundaria" aoClicar={tentarNovamente}>Tentar novamente</Botao>
               )}
               {voltar}
             </div>
+
+            {visivel.fase === "sucesso" && podeGerenciar && (
+              <DialogoConfirmacao
+                aberto={dialogoExclusaoProdutoAberto(exclusaoVisivel)}
+                titulo={TITULO_DIALOGO_EXCLUSAO_PRODUTO}
+                descricao={textoDialogoExclusaoProduto(visivel.produto.nome)}
+                textoConfirmar={ROTULO_CONFIRMAR_EXCLUSAO_PRODUTO}
+                textoConfirmando={ROTULO_EXCLUINDO_PRODUTO}
+                variante="perigo"
+                carregando={exclusaoVisivel.fase === "excluindo"}
+                erro={textoErroDialogoExclusao(exclusaoVisivel)}
+                aoConfirmar={() => void confirmarExclusao()}
+                aoCancelar={() => despacharExclusao({ tipo: "cancelar", id: idAlvo })}
+              />
+            )}
           </>
         )}
     </CartaoIngresso>

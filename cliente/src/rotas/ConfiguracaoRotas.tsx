@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router";
 import { Layout } from "../componentes/Layout.tsx";
 import { PaginaCadastro } from "../paginas/PaginaCadastro.tsx";
 import { PaginaEditarCadastro } from "../paginas/PaginaEditarCadastro.tsx";
+import { PaginaEditarProduto } from "../paginas/PaginaEditarProduto.tsx";
 import { PaginaEditarUsuario } from "../paginas/PaginaEditarUsuario.tsx";
 import { PaginaConexao } from "../paginas/PaginaConexao.tsx";
 import { PaginaDetalheUsuario } from "../paginas/PaginaDetalheUsuario.tsx";
@@ -37,6 +38,7 @@ export function ConfiguracaoRotas() {
           <Route path="/usuarios/:id" element={<PaginaDetalheUsuario />} />
           <Route path="/usuarios/:id/editar" element={<PaginaEditarUsuario />} />
           <Route path="/produtos/novo" element={<PaginaNovoProduto />} />
+          <Route path="/produtos/:id/editar" element={<PaginaEditarProduto />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

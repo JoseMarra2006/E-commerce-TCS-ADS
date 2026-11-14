@@ -83,7 +83,7 @@ describe("aviso-produto", () => {
       { avisoProduto: null },
       { avisoProduto: 1 },
       { avisoProduto: "Criado" },
-      { avisoProduto: "excluido" },
+      { avisoProduto: "removido" },
       { avisoProduto: "<img src=x>" },
       { avisoProduto: "__proto__" },
       { avisoProduto: "toString" },

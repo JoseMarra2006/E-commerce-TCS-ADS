@@ -8,6 +8,12 @@
   cursor: progress;
 }
 
+.identificador {
+  color: var(--cor-texto-secundario);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .alerta:focus {
   outline: none;
 }

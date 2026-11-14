@@ -7,9 +7,14 @@ import estilos from "./PaginaProdutos.module.css";
 interface PropriedadesTabelaProdutos {
   linhas: readonly LinhaProduto[];
   recarregando: boolean;
+  mostrarEditar?: boolean;
 }
 
-export function TabelaProdutos({ linhas, recarregando }: PropriedadesTabelaProdutos) {
+export function TabelaProdutos({
+  linhas,
+  recarregando,
+  mostrarEditar = false,
+}: PropriedadesTabelaProdutos) {
   const idLegenda = useId();
 
   return (
@@ -40,12 +45,19 @@ export function TabelaProdutos({ linhas, recarregando }: PropriedadesTabelaProdu
                 </span>
               </td>
               <td>
-                <LinkTexto
-                  para={linha.caminhoDetalhe}
-                  rotuloAcessivel={`Ver detalhes de ${linha.nome}`}
-                >
-                  Ver detalhes
-                </LinkTexto>
+                <span className={estilos.acoesLinha}>
+                  <LinkTexto
+                    para={linha.caminhoDetalhe}
+                    rotuloAcessivel={`Ver detalhes de ${linha.nome}`}
+                  >
+                    Ver detalhes
+                  </LinkTexto>
+                  {mostrarEditar && (
+                    <LinkTexto para={linha.caminhoEdicao} rotuloAcessivel={`Editar ${linha.nome}`}>
+                      Editar
+                    </LinkTexto>
+                  )}
+                </span>
               </td>
             </tr>
           ))}

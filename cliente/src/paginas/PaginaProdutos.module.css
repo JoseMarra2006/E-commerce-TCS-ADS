@@ -76,6 +76,12 @@
   gap: var(--espaco-2);
 }
 
+.acoesLinha {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-3);
+}
+
 .vazio {
   color: var(--cor-texto-secundario);
 }

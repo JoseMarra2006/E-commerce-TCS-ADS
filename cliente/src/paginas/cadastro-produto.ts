@@ -51,9 +51,11 @@ export interface DependenciasEnvioCadastro {
 
 type FalhaOperacao = Extract<ResultadoOperacao<RespostaProduto>, { ok: false }>;
 
-export function criarEstadoCadastroProduto(): EstadoCadastroProduto {
+export function criarEstadoCadastroProduto(
+  valoresIniciais: CamposFormularioProduto = { nome: "", descricao: "", quantidade: "" },
+): EstadoCadastroProduto {
   return {
-    valores: { nome: "", descricao: "", quantidade: "" },
+    valores: { ...valoresIniciais },
     tocados: { nome: false, descricao: false, quantidade: false },
     tentouEnviar: false,
     mostrarResumo: false,
@@ -114,7 +116,15 @@ function mensagemDoServidorOu(falha: FalhaOperacao, padrao: string): string {
   return falha.mensagem.trim() === "" || falha.mensagem === generica ? padrao : falha.mensagem;
 }
 
-export function interpretarFalhaCadastro(falha: FalhaOperacao): FalhaExibida | null {
+export interface TextosFalhaFormularioProduto {
+  mensagem403: string;
+  apoio: string;
+}
+
+export function interpretarFalhaFormularioProduto(
+  falha: FalhaOperacao,
+  textos: TextosFalhaFormularioProduto,
+): FalhaExibida | null {
   if (falha.tipo === "http" && falha.status === 401) {
     return null;
   }
@@ -125,9 +135,16 @@ export function interpretarFalhaCadastro(falha: FalhaOperacao): FalhaExibida | n
     return { mensagem: mensagemDoServidorOu(falha, MENSAGEM_DADOS_RECUSADOS), apoio: null };
   }
   if (falha.tipo === "http" && falha.status === 403) {
-    return { mensagem: mensagemDoServidorOu(falha, MENSAGEM_SOMENTE_ADM_CADASTRA), apoio: null };
+    return { mensagem: mensagemDoServidorOu(falha, textos.mensagem403), apoio: null };
   }
-  return { mensagem: falha.mensagem, apoio: APOIO_TENTAR_NOVAMENTE };
+  return { mensagem: falha.mensagem, apoio: textos.apoio };
+}
+
+export function interpretarFalhaCadastro(falha: FalhaOperacao): FalhaExibida | null {
+  return interpretarFalhaFormularioProduto(falha, {
+    mensagem403: MENSAGEM_SOMENTE_ADM_CADASTRA,
+    apoio: APOIO_TENTAR_NOVAMENTE,
+  });
 }
 
 export async function enviarCadastroProduto(

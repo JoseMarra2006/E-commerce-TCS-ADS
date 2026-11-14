@@ -5,3 +5,7 @@ export function caminhoDetalheProduto(id: number): string {
 }
 
 export const CAMINHO_NOVO_PRODUTO = "/produtos/novo";
+
+export function caminhoEdicaoProduto(id: number): string {
+  return `${caminhoDetalheProduto(id)}/editar`;
+}

@@ -1,6 +1,6 @@
 import { ehAdministrador } from "../contextos/eh-administrador.ts";
 import type { RespostaProduto } from "../tipos/protocolo.ts";
-import { caminhoDetalheProduto } from "./caminhos-produtos.ts";
+import { caminhoDetalheProduto, caminhoEdicaoProduto } from "./caminhos-produtos.ts";
 import { formatarQuantidade, resumirDescricao } from "./formatacao-produto.ts";
 
 export interface LinhaProduto {
@@ -11,6 +11,7 @@ export interface LinhaProduto {
   quantidade: string;
   esgotado: boolean;
   caminhoDetalhe: string;
+  caminhoEdicao: string;
 }
 
 export type EstadoListaProdutos =
@@ -35,11 +36,16 @@ export function montarLinhasProdutos(produtos: readonly RespostaProduto[]): Linh
     quantidade: formatarQuantidade(produto.quantidade),
     esgotado: produto.quantidade === 0,
     caminhoDetalhe: caminhoDetalheProduto(produto.id),
+    caminhoEdicao: caminhoEdicaoProduto(produto.id),
   }));
 }
 
-export function podeCadastrarProduto(usuario: object | null | undefined): boolean {
+export function podeGerenciarProdutos(usuario: object | null | undefined): boolean {
   return ehAdministrador(usuario);
+}
+
+export function podeCadastrarProduto(usuario: object | null | undefined): boolean {
+  return podeGerenciarProdutos(usuario);
 }
 
 export function textoContadorProdutos(quantidade: number): string {
