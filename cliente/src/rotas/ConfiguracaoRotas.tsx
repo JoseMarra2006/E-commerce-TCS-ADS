@@ -7,6 +7,7 @@ import { PaginaConexao } from "../paginas/PaginaConexao.tsx";
 import { PaginaDetalheUsuario } from "../paginas/PaginaDetalheUsuario.tsx";
 import { PaginaLogin } from "../paginas/PaginaLogin.tsx";
 import { PaginaDetalheProduto } from "../paginas/PaginaDetalheProduto.tsx";
+import { PaginaNovoProduto } from "../paginas/PaginaNovoProduto.tsx";
 import { PaginaPerfil } from "../paginas/PaginaPerfil.tsx";
 import { PaginaProdutos } from "../paginas/PaginaProdutos.tsx";
 import { PaginaUsuarios } from "../paginas/PaginaUsuarios.tsx";
@@ -35,6 +36,7 @@ export function ConfiguracaoRotas() {
           <Route path="/usuarios" element={<PaginaUsuarios />} />
           <Route path="/usuarios/:id" element={<PaginaDetalheUsuario />} />
           <Route path="/usuarios/:id/editar" element={<PaginaEditarUsuario />} />
+          <Route path="/produtos/novo" element={<PaginaNovoProduto />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

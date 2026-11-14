@@ -1,0 +1,6 @@
+.areaTexto {
+  min-height: 7.5rem;
+  resize: vertical;
+  line-height: 1.5;
+  font-family: inherit;
+}

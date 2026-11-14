@@ -16,6 +16,9 @@ interface PropriedadesCampoTexto {
   erro?: string;
   referencia?: Ref<HTMLInputElement>;
   acao?: ReactNode;
+  somenteLeitura?: boolean;
+  aoSair?: () => void;
+  contador?: string;
 }
 
 export function CampoTexto({
@@ -31,6 +34,9 @@ export function CampoTexto({
   erro,
   referencia,
   acao,
+  somenteLeitura,
+  aoSair,
+  contador,
 }: PropriedadesCampoTexto) {
   const identificador = useId();
   const idAjuda = `${identificador}-ajuda`;
@@ -55,9 +61,11 @@ export function CampoTexto({
           autoComplete={autoComplete}
           inputMode={inputMode}
           disabled={desabilitado}
+          readOnly={somenteLeitura}
           aria-invalid={erro !== undefined ? true : undefined}
           aria-describedby={descricao === "" ? undefined : descricao}
           onChange={(evento) => aoAlterar(evento.target.value)}
+          onBlur={aoSair}
         />
         {acao}
       </div>
@@ -66,6 +74,7 @@ export function CampoTexto({
           {ajuda}
         </p>
       )}
+      {contador !== undefined && <p className={estilos.ajuda}>{contador}</p>}
       {erro !== undefined && (
         <p id={idErro} className={estilos.erro}>
           {erro}

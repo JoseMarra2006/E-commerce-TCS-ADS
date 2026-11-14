@@ -2,6 +2,7 @@ import { createElement } from "react";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router";
+import type { InitialEntry } from "react-router";
 import { describe, expect, it } from "vitest";
 import type { Operacoes } from "../src/api/operacoes.ts";
 import { ContextoConexao } from "../src/contextos/contexto-conexao.ts";
@@ -10,7 +11,9 @@ import { ContextoRegistros } from "../src/contextos/contexto-registros.ts";
 import { ContextoSessao } from "../src/contextos/contexto-sessao.ts";
 import type { SessaoAtiva } from "../src/contextos/contexto-sessao.ts";
 import { ContextoTema } from "../src/contextos/contexto-tema.ts";
-import { montarLinhasProdutos } from "../src/paginas/lista-produtos.ts";
+import { CampoTextoLongo } from "../src/componentes/CampoTextoLongo.tsx";
+import { AcoesListaProdutos } from "../src/paginas/AcoesListaProdutos.tsx";
+import { montarLinhasProdutos, podeCadastrarProduto } from "../src/paginas/lista-produtos.ts";
 import { TabelaProdutos } from "../src/paginas/TabelaProdutos.tsx";
 import { ConfiguracaoRotas } from "../src/rotas/ConfiguracaoRotas.tsx";
 
@@ -52,7 +55,7 @@ function criarOperacoesContadas() {
   return { operacoes, chamadas };
 }
 
-function renderizar(caminho: string, sessao: SessaoAtiva | null) {
+function renderizar(caminho: InitialEntry, sessao: SessaoAtiva | null) {
   const { operacoes, chamadas } = criarOperacoesContadas();
   const arvore: ReactNode = createElement(
     ContextoTema,
@@ -167,13 +170,15 @@ describe("páginas de produtos no primeiro quadro", () => {
     }
   });
 
-  it("as páginas de produtos não mostram nada específico de ADM", () => {
+  it("o detalhe e o primeiro quadro da lista são iguais para ADM e comum; o botão Novo produto depende do ADM", () => {
+    const principal = (html: string) => /<main[^>]*>.*<\/main>/s.exec(html)?.[0] ?? "";
     for (const caminho of ["/produtos", "/produtos/7"]) {
       const paraAdm = renderizar(caminho, sessaoDe(administrador)).html;
       const paraComum = renderizar(caminho, sessaoDe(comum)).html;
-      const principal = (html: string) => /<main[^>]*>.*<\/main>/s.exec(html)?.[0] ?? "";
       expect(principal(paraAdm), caminho).toBe(principal(paraComum));
     }
+    expect(podeCadastrarProduto(administrador)).toBe(true);
+    expect(podeCadastrarProduto(comum)).toBe(false);
   });
 });
 
@@ -241,5 +246,110 @@ describe("TabelaProdutos", () => {
     for (const id of [3, 8, 9]) {
       expect(html).toContain(`href="/produtos/${id}"`);
     }
+  });
+});
+
+describe("cadastro de produto: rota /produtos/novo", () => {
+  it("ADM vê o formulário com os três campos, ajudas, contadores e botões", () => {
+    const { html, chamadas } = renderizar("/produtos/novo", sessaoDe(administrador));
+    expect(html).toMatch(/<h1[^>]*>Novo produto<\/h1>/);
+    expect(html).toContain("Informe os dados do produto para cadastrá-lo no estoque.");
+    expect(html).toContain("Administração");
+    for (const rotulo of ["Nome", "Descrição", "Quantidade em estoque"]) {
+      const forDoRotulo = new RegExp(`<label for="([^"]+)"[^>]*>${rotulo}</label>`).exec(html)?.[1];
+      expect(forDoRotulo, rotulo).toBeDefined();
+      expect(html, rotulo).toContain(`id="${forDoRotulo ?? ""}"`);
+    }
+    expect(html).toMatch(/<textarea[^>]*autoComplete="off"|<textarea[^>]*autocomplete="off"/);
+    expect(html).toMatch(/<input[^>]*inputMode="numeric"|<input[^>]*inputmode="numeric"/);
+    expect(html).not.toContain('type="number"');
+    for (const ajuda of ["De 2 a 100 caracteres.", "Até 500 caracteres. Pode ficar em branco.", "Número inteiro de 0 a 1.000.000."]) {
+      expect(html).toContain(ajuda);
+    }
+    expect(html).toContain("0 de 100 caracteres");
+    expect(html).toContain("0 de 500 caracteres");
+    expect(html).not.toContain("aria-live");
+    expect(html).toMatch(/<button type="submit"[^>]*>Cadastrar produto<\/button>/);
+    expect(html).toMatch(/href="\/produtos"[^>]*>Cancelar<\/a>/);
+    expect(html).not.toContain("aria-invalid");
+    expect(html).not.toContain("Corrija os campos destacados.");
+    expect(chamadas).toEqual([]);
+  });
+
+  it("não cai na página de detalhe nem faz requisição de lerProduto", () => {
+    const { html, chamadas } = renderizar("/produtos/novo", sessaoDe(administrador));
+    expect(html).not.toContain("Detalhes do produto");
+    expect(html).not.toContain("Identificador de produto inválido.");
+    expect(chamadas).not.toContain("lerProduto");
+  });
+
+  it("usuário comum e visitante não veem o formulário", () => {
+    for (const sessao of [sessaoDe(comum), null]) {
+      const { html, chamadas } = renderizar("/produtos/novo", sessao);
+      expect(html).not.toContain("Novo produto");
+      expect(html).not.toContain("<form");
+      expect(html).not.toContain("Identificador de produto inválido.");
+      expect(chamadas).toEqual([]);
+    }
+  });
+});
+
+describe("lista de produtos: botão Novo produto e aviso", () => {
+  function renderizarAcoes(podeCadastrar: boolean): string {
+    return renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(AcoesListaProdutos, { recarregando: false, podeCadastrar, aoRecarregar: semAcao }),
+      ),
+    );
+  }
+
+  it("Novo produto aparece só quando pode cadastrar, ao lado de Atualizar lista", () => {
+    const comBotao = renderizarAcoes(true);
+    expect(comBotao).toContain(">Atualizar lista</button>");
+    expect(comBotao).toMatch(/href="\/produtos\/novo"[^>]*>Novo produto<\/a>/);
+    const semBotao = renderizarAcoes(false);
+    expect(semBotao).toContain(">Atualizar lista</button>");
+    expect(semBotao).not.toContain("Novo produto");
+  });
+
+  it("com o aviso criado no estado, a lista mostra o texto fixo em role status", () => {
+    const { html } = renderizar(
+      { pathname: "/produtos", state: { avisoProduto: "criado" } },
+      sessaoDe(administrador),
+    );
+    expect(html).toMatch(/<div role="status"[^>]*>Produto cadastrado com sucesso\.<\/div>/);
+  });
+
+  it("sem aviso ou com aviso desconhecido, nada é mostrado", () => {
+    for (const state of [null, { avisoProduto: "outro" }, { avisoProduto: "<b>x</b>" }]) {
+      const { html } = renderizar({ pathname: "/produtos", state }, sessaoDe(comum));
+      expect(html).not.toContain("Produto cadastrado com sucesso.");
+      expect(html).not.toContain("&lt;b&gt;");
+    }
+  });
+});
+
+describe("CampoTextoLongo", () => {
+  it("renderiza textarea com rótulo, ajuda, erro e contador sem aria-live", () => {
+    const html = renderToStaticMarkup(
+      createElement(CampoTextoLongo, {
+        rotulo: "Descrição",
+        valor: "<b>texto</b>",
+        aoAlterar: semAcao,
+        ajuda: "Ajuda.",
+        erro: "Erro do campo.",
+        contador: "12 de 500 caracteres",
+      }),
+    );
+    const id = /<label for="([^"]+)"/.exec(html)?.[1] ?? "";
+    expect(html).toContain(`<textarea id="${id}"`);
+    expect(html).toContain('aria-invalid="true"');
+    expect(html).toContain(`aria-describedby="${id}-ajuda ${id}-erro"`);
+    expect(html).toContain(`<p id="${id}-erro"`);
+    expect(html).toContain("&lt;b&gt;texto&lt;/b&gt;");
+    expect(html).toContain("12 de 500 caracteres");
+    expect(html).not.toContain("aria-live");
   });
 });
