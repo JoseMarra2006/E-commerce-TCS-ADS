@@ -2,6 +2,7 @@ export interface EventoSse {
   evento: string;
   dados: string;
   campos: string[];
+  recebidoEm: number;
 }
 
 export interface ClienteSse {
@@ -40,7 +41,12 @@ function interpretarBloco(bloco: string): EventoSse | null {
     }
   }
 
-  return { evento, dados: dados.join("\n"), campos };
+  return {
+    evento,
+    dados: dados.join("\n"),
+    campos,
+    recebidoEm: performance.now(),
+  };
 }
 
 export function lerFluxoSse(resposta: Response): ClienteSse {
