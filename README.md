@@ -145,6 +145,8 @@ deno task start
 
 O terminal mostra `Cliente: http://127.0.0.1:PORTA`. Para encerrar o cliente, use `Ctrl+C` nesse terminal.
 
+Não suba dois servidores a partir da mesma pasta do projeto ao mesmo tempo, mesmo em portas diferentes: eles compartilham o banco e o segredo de `servidor/dados/` e passam a se comportar como um único servidor (um usuário cadastrado em um entra pelo outro, e o token de um vale no outro). Isso não corrompe os dados, mas confunde o painel e a avaliação. Para dois servidores independentes, use cópias do projeto em pastas separadas.
+
 ### 5.3 Modo de desenvolvimento
 
 Em dois terminais, a partir da raiz:
@@ -167,7 +169,7 @@ O painel escuta só em `127.0.0.1`, numa porta livre escolhida pelo sistema oper
 
 1. Digite a porta da API no campo "Porta da API" (sem valor padrão; por exemplo, `20000`). Valores inválidos são recusados no próprio painel ("A porta deve conter apenas números.", "A porta deve estar entre 1 e 65535.").
 2. Clique em "Iniciar servidor". O painel mostra "Servidor iniciado na porta N com T threads." (T vai de 2 a 8, conforme os processadores da máquina).
-3. Os endereços de acesso (`http://localhost:PORTA/api/v1` e o IP da rede) aparecem no painel. É o IP da rede que os colegas digitam no cliente.
+3. Os endereços de acesso aparecem no painel: `http://localhost:PORTA/api/v1` e um endereço para cada IPv4 da máquina, inclusive de VPNs (como Radmin ou Hamachi) e de adaptadores virtuais. Informe ao colega só o endereço da rede que os dois computadores compartilham (seção 9).
 
 O painel também mostra as threads em tempo real, o log de cada requisição (horário, thread, método, caminho, status e duração; a senha aparece como `"***"` e o token truncado) e o cartão "Usuários logados", sempre atualizado, com nome, e-mail, tipo, quantidade de sessões e horário da sessão mais antiga de cada usuário que tem sessão ativa.
 
@@ -212,8 +214,31 @@ Usuário comum que digita esses endereços é levado ao perfil. A sessão fica s
 ## 9. Testar com colegas
 
 - **Seu cliente no servidor de um colega:** na tela "Conectar ao servidor", informe o IP da máquina do colega (o que o painel dele mostra) e a porta que ele escolheu. O servidor do colega não precisa ter CORS, porque o intermediário faz o envio.
-- **Seu servidor para um colega:** inicie a API no painel e informe ao colega um endereço de acesso mostrado pelo painel (IP da rede e porta). Na primeira vez em que o servidor escuta na rede, o Windows pode pedir permissão de firewall para o Deno: permita em redes privadas.
+- **Seu servidor para um colega:** inicie a API no painel e informe ao colega o endereço de acesso da rede que vocês compartilham (IP e porta).
 - Na rede cabeada da UTFPR costumam ser usadas portas entre 20000 e 25000.
+
+### 9.1 Qual IP informar
+
+O painel lista todos os endereços IPv4 da máquina. Endereços de VPN (Radmin, Hamachi e semelhantes) e de adaptadores virtuais não servem para o colega na mesma sala: use o da rede cabeada (na UTFPR, por exemplo, endereços que começam com `10.20.`; confira o prefixo da rede no dia). Para conferir, execute no terminal:
+
+```bash
+ipconfig
+```
+
+Procure o adaptador da rede em uso (na rede cabeada, "Adaptador Ethernet Ethernet"; no Wi-Fi, "Adaptador de Rede sem Fio Wi-Fi") e a linha "Endereço IPv4". Ignore os adaptadores com nome de VPN, como "Adaptador Ethernet Radmin VPN".
+
+### 9.2 Firewall do Windows
+
+Na primeira vez em que o servidor escuta na rede, o Windows pode pedir permissão de firewall para o `deno.exe`. Permita na rede em uso, seja ela Pública ou Privada. Sem essa liberação, outros computadores não conseguem se conectar, mesmo com o servidor funcionando e respondendo em `localhost`.
+
+1. Confira o perfil da rede em Configurações do Windows > Rede e Internet: abra a conexão em uso (Ethernet ou Wi-Fi) e veja o "Tipo de perfil de rede" (Pública ou Privada).
+2. Se não liberou quando o aviso apareceu, abra o Firewall do Windows Defender, clique em "Permitir um aplicativo ou recurso através do Firewall do Windows Defender", depois em "Alterar configurações", e marque o perfil correto (Pública ou Privada) nas linhas do `deno.exe`. O firewall também abre por este comando:
+
+   ```bash
+   control firewall.cpl
+   ```
+
+3. Para diagnosticar, de outro computador da mesma rede, abra no navegador `http://IP:PORTA/api/v1/users`, com o IP e a porta do servidor. Qualquer resposta, mesmo de erro (sem login, o servidor responde `401` com uma mensagem em JSON), prova que a rede chega ao servidor. "Tempo esgotado" indica bloqueio do firewall ou IP errado.
 
 ## 10. Testes automatizados
 
@@ -325,7 +350,7 @@ A EP-1 (itens a a l: cadastro, login, leitura, atualização, exclusão e logout
 |---|---|
 | Script mostra "Deno nao encontrado" ou "Node.js nao encontrado" | Instale o programa (seção 3), feche e abra o terminal e confira com `deno --version` e `node --version`. |
 | Painel: "A porta N já está em uso por outro programa. Escolha outra porta." | Digite outra porta e clique em "Iniciar servidor". |
-| Colegas não conseguem conectar ao seu servidor | Libere o Deno no firewall para redes privadas e confira o IP e a porta no painel. De outra máquina, `curl -i -X OPTIONS http://IP:PORTA/api/v1/users` deve responder `204`. |
+| Colegas não conseguem conectar ao seu servidor | Libere o `deno.exe` no firewall para o perfil da rede em uso, Pública ou Privada (seção 9.2), e confira se informou o IP da rede compartilhada, não o de uma VPN (seção 9.1). De outra máquina, `curl -i -X OPTIONS http://IP:PORTA/api/v1/users` deve responder `204`; tempo esgotado indica firewall ou IP errado. |
 | O servidor do colega não tem CORS | Não afeta este cliente: o intermediário faz o envio no lugar do navegador. |
 | "Não foi possível conectar ao servidor. Verifique o IP, a porta e se o servidor está em execução." | IP ou porta errados, ou servidor parado. Confira no painel do servidor se a API está em execução. |
 | "O intermediário do cliente não está em execução. Feche e abra o cliente novamente." | Execute `iniciar-cliente` de novo. |
