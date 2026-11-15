@@ -116,8 +116,14 @@ Deno.test("colega divergente: tolera status, id em texto e campos extras", async
       operacoes,
     );
     for (const usuario of [cadastrado, sessao.usuario, lido, atualizado]) {
-      assertEquals(Object.keys(usuario).sort(), ["email", "id", "nome"]);
+      assertEquals(Object.keys(usuario).sort(), [
+        "admin",
+        "email",
+        "id",
+        "nome",
+      ]);
       assertEquals(typeof usuario.id, "number");
+      assertEquals(usuario.admin, false);
     }
     assertEquals(Object.keys(sessao).sort(), ["id", "token", "usuario"]);
   });

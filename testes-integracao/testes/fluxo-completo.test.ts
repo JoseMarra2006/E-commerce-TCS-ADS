@@ -31,7 +31,13 @@ Deno.test("fluxo completo: cliente, intermediário, servidor real e banco", asyn
 
   try {
     const verificacao = exigirSucesso(await operacoes.verificarServidor());
-    assertEquals(verificacao.status, 405);
+    assertEquals(verificacao.status, 204);
+    const registroVerificacao = apenasRequisicoes(servidor.registros).findLast(
+      (registro) => registro.metodo === "OPTIONS",
+    );
+    assert(registroVerificacao !== undefined);
+    assertEquals(registroVerificacao.caminho, "/api/v1/sessions");
+    assertEquals(registroVerificacao.status, 204);
 
     const cadastrado = exigirSucesso(
       await operacoes.cadastrar({
@@ -42,6 +48,7 @@ Deno.test("fluxo completo: cliente, intermediário, servidor real e banco", asyn
     );
     assertEquals(cadastrado.nome, "Maria Fluxo");
     assertEquals(cadastrado.email, EMAIL);
+    assertEquals(cadastrado.admin, false);
     assert(Number.isInteger(cadastrado.id) && cadastrado.id > 0);
 
     const mensagemDuplicado = exigirFalha(
@@ -88,6 +95,7 @@ Deno.test("fluxo completo: cliente, intermediário, servidor real e banco", asyn
       id: cadastrado.id,
       nome: "Maria Renomeada",
       email: EMAIL,
+      admin: false,
     });
     const registroPatch = apenasRequisicoes(servidor.registros).findLast(
       (registro) => registro.metodo === "PATCH",
